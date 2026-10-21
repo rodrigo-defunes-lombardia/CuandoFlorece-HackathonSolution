@@ -26,7 +26,7 @@ nav a.on{background:var(--bg-3);color:var(--text)}
 .marca-txt b{font-size:.78rem}.marca-txt i{font-size:.7rem;font-style:normal;color:var(--text-dim)}
 .marca:hover,.marca--sel{transform:scale(1.12)} .marca--sel .marca-txt{background:var(--bg-3)}
 .marca--fuera svg{opacity:.7}
-.marca--sim .marca-txt{border-style:dashed} .marca:focus-visible{outline:3px solid var(--amber)}
+.marca:focus-visible{outline:3px solid var(--amber)}
 /* Simulador */
 .flota{position:absolute;z-index:4;left:var(--s-3);right:var(--s-3);top:var(--s-3)}
 .sim{background:rgba(43,35,51,.94);backdrop-filter:blur(6px);border:1px solid var(--line);border-radius:var(--r-md);padding:var(--s-3);box-shadow:var(--shadow);max-width:430px}
@@ -44,7 +44,6 @@ nav a.on{background:var(--bg-3);color:var(--text)}
 .lista{list-style:none;margin:var(--s-4) 0;padding:0;display:grid;gap:var(--s-3)}
 .tarjeta{all:unset;box-sizing:border-box;display:grid;grid-template-columns:auto 1fr;gap:var(--s-3);width:100%;background:var(--bg-2);border:1px solid var(--line);border-left:5px solid var(--c);border-radius:var(--r-md);padding:var(--s-3);cursor:pointer;transition:background .2s,border-color .4s}
 .tarjeta:hover{background:var(--bg-3)} .tarjeta:focus-visible{outline:3px solid var(--amber)}
-.tarjeta--sim{border-style:dashed;border-left-style:dashed}
 .tarjeta-txt{display:flex;flex-direction:column;gap:1px}.tarjeta-txt b{font-family:var(--font-serif);font-size:1.05rem}
 .tarjeta-txt span{color:var(--text-dim);font-size:.85rem}.tarjeta-est{color:var(--text)!important;font-weight:600}
 .tarjeta-b{grid-column:1/-1}
@@ -58,7 +57,6 @@ nav a.on{background:var(--bg-3);color:var(--text)}
 .badge--sat{border-color:#7FB5D9}.badge--mod{border-color:var(--lila-2)}.badge--cal{border-color:var(--text-faint)}.badge--com{border-color:var(--ok)}
 .badge--sim{border:1.5px dashed var(--danger);color:#F4C1C1}
 .banner-sim{background:rgba(232,138,138,.12);border:1.5px dashed var(--danger);border-radius:var(--r-sm);padding:8px 12px;font-size:.85rem;color:#F4C1C1}
-.ficha--sim .bloque{border-style:dashed}
 .bloque{background:var(--bg-2);border:1px solid var(--line);border-radius:var(--r-md);padding:var(--s-4)}
 .estado{border-color:var(--c);background:linear-gradient(160deg,var(--bg-3),var(--bg-2))}
 .estado-cab{display:flex;gap:var(--s-3);align-items:center}
@@ -74,7 +72,7 @@ nav a.on{background:var(--bg-3);color:var(--text)}
 .comunidad,.comunidad-n{font-size:.88rem}.comunidad{background:rgba(139,211,168,.1);border-left:3px solid var(--ok);padding:6px 10px;border-radius:0 8px 8px 0}
 .aviso{background:rgba(240,179,90,.12);border-left:3px solid var(--amber);padding:8px 12px;border-radius:0 8px 8px 0;font-size:.85rem}
 .nivel{font-weight:700;padding:2px 10px;border-radius:99px;border:1.5px solid}
-.nivel--alta{color:var(--ok)}.nivel--media{color:var(--amber)}.nivel--baja{color:var(--danger)}.nivel--simulada{color:var(--text-dim);border-style:dashed}
+.nivel--alta{color:var(--ok)}.nivel--media{color:var(--amber)}.nivel--baja{color:var(--danger)}
 /* Línea de tiempo */
 .lt{margin-top:var(--s-3)} .lt-fila{margin-bottom:var(--s-3)}
 .lt-etq{display:flex;flex-direction:column;font-size:.82rem;margin-bottom:4px}.lt-etq b{font-weight:600}.lt-etq span{color:var(--text-dim)}.lt-etq small{color:var(--text-faint)}

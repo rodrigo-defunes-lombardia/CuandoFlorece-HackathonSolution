@@ -61,8 +61,8 @@ export function MapView({ destinos, estados, seleccionado, onSeleccionar }: Prop
       const el = marcas.current[d.id], e = estados[d.id]
       if (!el || !e) continue
       el.style.setProperty('--c', colorFase(d.tipo, e.faseId))
-      el.className = `marca${d.simulado ? ' marca--sim' : ''}${seleccionado === d.id ? ' marca--sel' : ''}${e.enTemporada ? '' : ' marca--fuera'}`
-      el.setAttribute('aria-label', `${d.nombre}: ${e.etiqueta}${e.enTemporada ? `, ${e.pct} %` : ''}${d.simulado ? ' (simulado)' : ''}`)
+      el.className = `marca${seleccionado === d.id ? ' marca--sel' : ''}${e.enTemporada ? '' : ' marca--fuera'}`
+      el.setAttribute('aria-label', `${d.nombre}: ${e.etiqueta}${e.enTemporada ? `, ${e.pct} %` : ''}`)
       el.innerHTML = `${florHtml(38)}<span class="marca-txt"><b>${d.nombre.replace('Hayedo de ', '')}</b><i>${e.etiqueta}${e.enTemporada ? ` · ${e.pct} %` : ''}</i></span>`
     }
   }, [destinos, estados, seleccionado])

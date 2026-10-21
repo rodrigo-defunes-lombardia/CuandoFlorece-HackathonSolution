@@ -4,7 +4,7 @@ export interface Hito {
   detectado_2026?: { fecha: string; confirmado: string; revisar: boolean }
 }
 export interface Fase { id: string; etiqueta: string; hito_inicio: string }
-export interface Confianza { nivel: 'alta' | 'media' | 'baja' | 'simulada'; anios: number; observaciones: number; texto: string }
+export interface Confianza { nivel: 'alta' | 'media' | 'baja'; anios: number; observaciones: number; texto: string }
 export interface ModeloSevilla {
   base_c: number; inicio_acumulacion: string; justificacion_base: string
   bases_probadas: { base: number; umbral_pico: number; cv: number; pico_central_doy: number }[]
@@ -17,7 +17,7 @@ export interface ModeloSevilla {
 }
 export interface Destino {
   id: string; nombre: string; especie: string; tipo: 'flor' | 'hayedo'; region: string
-  lat: number; lon: number; simulado: boolean; temporada: number; resumen: string
+  lat: number; lon: number; temporada: number; resumen: string
   hitos: Hito[]; fases: Fase[]; fin: string; ventana: [string, string]; curva: [string, number][]
   confianza: Confianza; origenes: string[]
   modelo?: ModeloSevilla

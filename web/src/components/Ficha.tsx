@@ -13,7 +13,7 @@ interface Props {
   d: Destino; fecha: string; hoy: string; ajuste: Ajuste; obs: Observacion[]
   onVolver: () => void; onAlerta: () => void; onObs: () => void; onAR: () => void
 }
-const NIVEL = { alta: 'Alta', media: 'Media', baja: 'Baja', simulada: 'No aplica' } as const
+const NIVEL = { alta: 'Alta', media: 'Media', baja: 'Baja',  } as const
 const fmtF = (x: number) => corta(new Date(x).toISOString().slice(0, 10))
 
 export function Ficha({ d, fecha, hoy, ajuste, obs, onVolver, onAlerta, onObs, onAR }: Props) {
@@ -28,13 +28,12 @@ export function Ficha({ d, fecha, hoy, ajuste, obs, onVolver, onAlerta, onObs, o
   useEffect(() => { if (d.id === 'sevilla' && d.modelo) anomaliaSevilla(d.modelo, d.lat, d.lon, hoy).then(setAnom) }, [d, hoy])
 
   return (
-    <article className={`ficha${d.simulado ? ' ficha--sim' : ''}`} aria-labelledby="ficha-titulo">
+    <article className="ficha" aria-labelledby="ficha-titulo">
       <button className="volver" onClick={onVolver}>← Todos los destinos</button>
       <header className="ficha-cab">
         <p className="sobre">{d.especie} · {d.region}</p>
         <h2 id="ficha-titulo">{d.nombre}</h2>
         <div className="badges">{origenes.map(o => <Badge key={o} origen={o} n={nCom} />)}</div>
-        {d.simulado && <p className="banner-sim" role="note">Simulado · sin datos reales. Este destino solo ilustra cómo escalaría el producto.</p>}
       </header>
 
       {/* 1. ¿Está en flor? */}

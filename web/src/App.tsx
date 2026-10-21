@@ -73,11 +73,11 @@ export default function App() {
                     {datos.destinos.map(x => {
                       const e = estados[x.id]
                       return (
-                        <li key={x.id}><button className={`tarjeta${x.simulado ? ' tarjeta--sim' : ''}`} style={{ ['--c' as string]: colorFase(x.tipo, e.faseId) }} onClick={() => setSel(x.id)}>
+                        <li key={x.id}><button className="tarjeta" style={{ ['--c' as string]: colorFase(x.tipo, e.faseId) }} onClick={() => setSel(x.id)}>
                           <Flor size={34} />
                           <span className="tarjeta-txt"><b>{x.nombre}</b><span>{x.especie}</span>
                             <span className="tarjeta-est">{e.etiqueta}{e.enTemporada ? ` · ${e.pct} %` : e.proxima ? ` · desde ~${e.proxima.slice(8)}/${e.proxima.slice(5, 7)}` : ''}</span></span>
-                          <span className="tarjeta-b">{x.simulado ? <Badge origen="Simulado" /> : <Badge origen={x.origenes[0]} />}</span>
+                          <span className="tarjeta-b"><Badge origen={x.origenes[0]} /></span>
                         </button></li>
                       )
                     })}

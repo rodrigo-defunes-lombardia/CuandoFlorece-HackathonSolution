@@ -179,7 +179,7 @@ def destino_sevilla():
     curva = [[iso(ini), 0], [iso(mid), 100], [iso(fin), 0]]
     return {
         "id": "sevilla", "nombre": "Azahar de Sevilla", "especie": "Azahar (naranjo amargo)", "tipo": "flor",
-        "region": "Andalucía", "lat": 37.3891, "lon": -5.9845, "simulado": False,
+        "region": "Andalucía", "lat": 37.3891, "lon": -5.9845,
         "temporada": 2027,
         "resumen": "Los naranjos de las calles de Sevilla perfuman la ciudad entre marzo y abril.",
         "hitos": hitos,
@@ -233,7 +233,7 @@ def destino_brihuega():
               "frac_cortada": float(temp.frac_cortada)}
     return {
         "id": "brihuega", "nombre": "Brihuega", "especie": "Lavanda y lavandín", "tipo": "flor",
-        "region": "Castilla-La Mancha (Guadalajara)", "lat": 40.7688, "lon": -2.8693, "simulado": False, "temporada": 2027,
+        "region": "Castilla-La Mancha (Guadalajara)", "lat": 40.7688, "lon": -2.8693, "temporada": 2027,
         "resumen": "Campos violetas de la Alcarria: la temporada alcanza su plenitud en julio.",
         "hitos": hitos,
         "fases": construir_fases(hitos, [("brote", "Brote", "inicio"), ("floracion", "Floración activa", "floracion"),
@@ -298,7 +298,7 @@ def destino_tejera():
            "lluvia": None if pd.isna(x.lluvia) else x.lluvia} for x in clima.itertuples()]
     return {
         "id": "tejera_negra", "nombre": "Hayedo de Tejera Negra", "especie": "Hayedo (otoño)", "tipo": "hayedo",
-        "region": "Castilla-La Mancha (Guadalajara)", "lat": 41.1550, "lon": -3.4230, "simulado": False, "temporada": 2026,
+        "region": "Castilla-La Mancha (Guadalajara)", "lat": 41.1550, "lon": -3.4230, "temporada": 2026,
         "resumen": "El hayedo más meridional de Europa se tiñe de ocre y cobre cada otoño.",
         "hitos": hitos,
         "fases": construir_fases(hitos, [("verde", "Verde", ""), ("brote", "Cambiando", "inicio"), ("floracion", "Color avanzado", "floracion"),
