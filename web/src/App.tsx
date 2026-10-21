@@ -12,7 +12,7 @@ import { Ficha } from './components/Ficha'
 import { FormObs } from './components/FormObs'
 import { FormAlerta } from './components/FormAlerta'
 import { cargarTiempo, fusionar, type DiaTiempo, type Tiempo } from './lib/tiempo'
-import { aplicarVivo, type Vivo } from './lib/vivo'
+import { aplicarVivo, inicioAcumulacion, type Vivo } from './lib/vivo'
 import { Anuncios } from './components/Anuncios'
 import { Agencia } from './components/Agencia'
 
@@ -42,13 +42,13 @@ export default function App() {
     setCargandoT(true)
     const res = await Promise.all(datos.destinos.map(async d => {
       const csv: DiaTiempo[] | undefined = d.serie?.clima.map(c => ({ ...c, prevision: false }))
-      const desde = d.modelo && hoy >= `${d.temporada}-01-01` ? `${d.temporada}-01-01` : undefined
+      const ini = inicioAcumulacion(d), desde = ini && hoy >= ini ? ini : undefined
       return [d.id, await cargarTiempo({ id: d.id, lat: d.lat, lon: d.lon, desde, csv, forzar })] as const
     }))
     setTiempos(Object.fromEntries(res)); setCargandoT(false)
   }, [datos, hoy])
   useEffect(() => { refrescar(); const i = setInterval(() => refrescar(), 30 * 60 * 1000); return () => clearInterval(i) }, [refrescar])
-  /** Destinos con la predicción en vivo aplicada (hoy solo Azahar de Sevilla) y tiempo listo para pintar. */
+  /** Destinos con la predicción en vivo aplicada (Sevilla: grados-día; Brihuega y Tejera Negra: modelo térmico experimental). */
   const vivos = useMemo(() => (datos?.destinos ?? []).map(d => {
     const { destino, vivo } = aplicarVivo(d, tiempos[d.id]?.origen === 'ninguno' ? undefined : tiempos[d.id]?.dias, hoy)
     const t = tiempos[d.id]

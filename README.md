@@ -8,7 +8,7 @@ python3 -m venv .venv && .venv/bin/pip install pandas numpy
 .venv/bin/python pipeline/build.py      # genera web/public/data/destinos.json
 cd web && npm install && npm run dev    # http://localhost:5173
 ```
-Pruebas (opcional; `pip install playwright pillow && playwright install chromium`, con la app en marcha): `python tests/e2e.py` (recorrido), `python tests/precision_mapa.py` (cada flor cae en su coordenada a varios zooms) y `node tests/vivo.mts` (predicción en vivo) `python tests/anuncios.py` (página de anuncios), `python tests/agencia.py` (página de agencia) y `cd web && npm test` (pruebas unitarias de la agencia, Vitest).
+Pruebas (opcional; `pip install playwright pillow && playwright install chromium`, con la app en marcha): `python tests/e2e.py` (recorrido), `python tests/precision_mapa.py` (cada flor cae en su coordenada a varios zooms) y `node tests/vivo.mts` (predicción en vivo de Sevilla), `node tests/termico.mts` (modelo térmico de Brihuega y Tejera Negra) `python tests/anuncios.py` (página de anuncios), `python tests/agencia.py` (página de agencia) y `cd web && npm test` (pruebas unitarias de la agencia, Vitest).
 Los CSV viven en `data/` (los 12 están presentes).
 
 ## Por qué esta tecnología
@@ -26,7 +26,8 @@ Los CSV viven en `data/` (los 12 están presentes).
 | Brihuega: predicción 2027, cosecha 2026 | **Real** (climatología v0, 10 temporadas; cosechas por satélite ±3 d) |
 | Brihuega: "primeras flores" y "floración activa" | **Supuesto** marcado (derivados del margen de plena flor) |
 | Azahar de Sevilla: modelo de grados-día con `meteo_sevilla.csv` | **Real**, con calibración débil (2 años) |
-| Open-Meteo en vivo: tiempo de los 3 destinos, anomalía de 2026 y predicción de Sevilla en temporada | **Real**, con respaldo a caché local y al CSV |
+| Open-Meteo en vivo: tiempo de los 3 destinos, anomalía de 2026 y ajuste de las fechas de los 3 destinos en temporada | **Real**, con respaldo a caché local y al CSV |
+| Modelo térmico de Brihuega y Tejera Negra (umbral, bases, años de referencia) | **Supuesto** marcado "experimental, no validado" en la ficha |
 | Observaciones semilla (5) | **Demo**, marcadas "de ejemplo" |
 | Alertas, partners | **Simulado** ("Ejemplo" / "Demo") |
 | Página `/anuncios`: ayuntamientos, locales y sus valoraciones | **Real** (valoración con fuente Booking.com o Google Maps, URL y fecha de consulta 21/10/2026) |
@@ -44,11 +45,14 @@ Los CSV viven en `data/` (los 12 están presentes).
 - **Hallazgo**: la mediana climática del pico (31 mar) es ~10 días posterior a los dos años observados (2022–23, cálidos).
 
 ## Datos en vivo (Open-Meteo)
-Módulo `web/src/lib/tiempo.ts`: la API de previsión (`past_days` + 16 días de previsión) y, para el tramo anterior a 92 días, la API de archivo. Gratis y sin clave.
+Módulo `web/src/lib/tiempo.ts`: la API de previsión (últimos días + 16 de previsión) y, para lo anterior a 30 días, la API de archivo (la de previsión solo trae ~40 días hacia atrás; los anteriores llegan vacíos). Gratis y sin clave.
 - **Actualización automática**: al abrir la app y cada 30 min (botón "Actualizar" para forzarla). Caché local de 30 min.
 - **Respaldo**: red → caché local → CSV del proyecto (solo Tejera Negra lo trae) → aviso "sin datos". La etiqueta dice siempre de dónde viene el dato.
-- **Tejera Negra**: el gráfico une `otono_clima_tejera_negra.csv` con los datos en vivo y la previsión. No modifica el calendario (no hay modelo de color basado en temperatura).
-- **Brihuega**: tiempo reciente y previsión como contexto. No modifica la predicción (climatología v0).
+- **Los 3 destinos ajustan sus fechas con la temperatura real**, cada uno desde que empieza su ventana de acumulación (Tejera Negra: 1 ago, activo ahora; Sevilla y Brihuega: 1 ene 2027).
+- **Tejera Negra y Brihuega: modelo térmico experimental** (`termico` en el JSON, `aplicarTermico` en `web/src/lib/vivo.ts`). No hay fechas de floración por año para calibrar un modelo, así que se asume que la fecha media del CSV corresponde al frío (hayedo, media diaria bajo 16/18/20 °C desde el 1 ago) o al calor (lavanda, sobre 3/5/7 °C desde el 1 ene) acumulado medio de los años de referencia (2018–2025 y 2016–2025, de la API de archivo de Open-Meteo, guardados en `pipeline/clima/`). Con la temperatura real (observada + previsión, y para lo que falta cada año de referencia) se calcula cuántos días se adelanta o retrasa ese acumulado; se usa la mediana entre bases y se desplazan todas las fechas del CSV, **sin estrechar los márgenes** y sin salir del margen amplio del hito de referencia.
+  - Tejera Negra hoy (21 oct 2026, 82 días reales + 15 de previsión): otoño más templado que la media → fechas 8 días después (7–8,5 según la base).
+  - Prueba de Brihuega con 2026 (no usado para calibrar): el modelo habría adelantado la plena flor 12,5 días; la cosecha real por satélite llegó 8 días (10 %) y 4 días (50 %) antes de lo climatológico. Misma dirección, pero exagera; es otra fase y un solo año.
+- **Tejera Negra**: el gráfico une `otono_clima_tejera_negra.csv` con los datos en vivo y la previsión.
 - **Azahar de Sevilla**: desde el 1 de enero de la temporada (2027), `web/src/lib/vivo.ts` recalcula los hitos con el método de **años análogos**: calor real acumulado (observado + previsión) hasta hoy, y para el resto del año el calor diario de cada uno de los 14 años históricos. Mismos percentiles que el pipeline. Antes del 1 de enero muestra la climatología e indica por qué.
 - **Prueba** (`node tests/vivo.mts`): sin datos en vivo reproduce exactamente el pipeline. Con 2025 fuera de los análogos y 60 días reales de 2025, el pico predicho cae 9 días antes del real; con 80 días, a 1 día.
 

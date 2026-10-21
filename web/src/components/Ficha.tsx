@@ -64,6 +64,13 @@ export function Ficha({ d, fecha, hoy, ajuste, obs, tiempo, vivo, cargandoTiempo
         <p className="dim">Probable: {rango(e.ventana.probable)} · Amplio: {rango(e.ventana.amplia)}{e.anioExtra ? ' · calendario del año siguiente' : ''}</p>
         <LineaTiempo estado={e} fecha={fecha} hitosMostrar={hitosClave} />
         {vivo?.texto && <p className="vivo" role="status">{vivo.activo ? <Badge origen="Open-Meteo" /> : null} {vivo.texto}</p>}
+        {d.termico && (
+          <details className="det"><summary>Cómo se ajusta con el tiempo (modelo experimental)</summary>
+            <p>{d.termico.explicacion}</p>
+            <p>Los datos de referencia ({d.termico.anios[0]}–{d.termico.anios[d.termico.anios.length - 1]}) y los de la temporada en curso vienen de Open-Meteo. Se actualiza solo al abrir la app y cada 30 minutos.</p>
+            {d.termico.validacion && <p>{d.termico.validacion.nota}</p>}
+          </details>
+        )}
         {ajuste.desplazamiento !== 0 && <p className="comunidad">La comunidad ha movido la predicción <b>{Math.abs(ajuste.desplazamiento).toFixed(1)} días {ajuste.desplazamiento < 0 ? 'antes' : 'después'}</b> y estrechado el margen un {Math.round((1 - ajuste.factor) * 100)} %.</p>}
         {d.hitos.some(h => h.revisar) && <p className="aviso" role="note"><b>Pendiente de revisar:</b> el satélite marcó el inicio el {corta(d.hitos[0].detectado_2026?.fecha ?? '')} (confirmado {corta(d.hitos[0].detectado_2026?.confirmado ?? '')}), semanas antes que en cualquier otoño anterior. No lo usamos para mover el calendario hasta revisarlo.</p>}
       </section>
@@ -89,7 +96,7 @@ export function Ficha({ d, fecha, hoy, ajuste, obs, tiempo, vivo, cargandoTiempo
       <section className="bloque" aria-label="Tiempo">
         <h3>Tiempo</h3>
         <Tiempo d={d} t={tiempo} hoy={hoy} cargando={cargandoTiempo} onRefrescar={onRefrescar}
-          nota={d.id === 'brihuega' ? 'El modelo de la lavanda (climatología v0) aún no usa el tiempo: esto es solo contexto.' : d.id === 'tejera_negra' ? 'Une el CSV del proyecto con datos en vivo. No modifica el calendario del hayedo.' : ''} />
+          nota={d.id === 'brihuega' ? 'Desde el 1 de enero, esta temperatura ajusta la predicción de la lavanda (modelo experimental).' : d.id === 'tejera_negra' ? 'Une el CSV del proyecto con datos en vivo; la temperatura desde el 1 de agosto ajusta el calendario del hayedo (modelo experimental).' : ''} />
       </section>
 
       {/* Acciones */}

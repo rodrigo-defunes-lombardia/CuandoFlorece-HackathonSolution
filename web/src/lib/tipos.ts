@@ -16,12 +16,18 @@ export interface ModeloSevilla {
   umbrales_lo: Record<string, number>; umbrales_hi: Record<string, number>; gd_diario: Record<string, number[]>
   meteo_hasta: string; observaciones: { fecha: string; fuente: string; calidad: string }[]
 }
+export interface ModeloTermico {
+  tipo: 'calor' | 'frio'; inicio: string; anios: number[]; bases: number[]; hito_ref: string; dia_ref: number
+  umbrales: Record<string, number>; tmed_diario: Record<string, number[]>; fuente: string; explicacion: string
+  validacion?: { anio: number; desplazamiento_modelo: number; por_base: number[]; desplazamiento_cosecha_real: Record<string, number>; nota: string }
+}
 export interface Destino {
   id: string; nombre: string; especie: string; tipo: 'flor' | 'hayedo'; region: string
   lat: number; lon: number; temporada: number; resumen: string
   hitos: Hito[]; fases: Fase[]; fin: string; ventana: [string, string]; curva: [string, number][]
   confianza: Confianza; origenes: string[]
   modelo?: ModeloSevilla
+  termico?: ModeloTermico
   historia?: {
     avance_2026: { fecha: string; pct_cortado: number; pct_probable: number }[]
     real_2026: Record<string, string | number>; emision_prediccion: string; parcelas: number

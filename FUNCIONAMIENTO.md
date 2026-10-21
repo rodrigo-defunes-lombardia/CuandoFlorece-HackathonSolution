@@ -29,8 +29,8 @@ No hay servidor propio: la web es un sitio estático. Lo único que sale a inter
 1. **`index.html`** carga **`src/main.tsx`**, que importa los estilos (`tokens.css`, `app.css`) y monta `<App />`.
 2. **`App.tsx`** pide `/data/destinos.json`. Si no existe, muestra el aviso «Ejecuta `python pipeline/build.py`». Mientras tanto se ve la flor girando («Cargando el mapa vivo…»).
 3. Se fija **«hoy»**: la fecha real del dispositivo, nunca anterior a `hoy_demo` del JSON (21 oct 2026).
-4. **Tiempo en vivo**: para cada destino se llama a `cargarTiempo` (`lib/tiempo.ts`). Para Sevilla, a partir del 1 ene 2027, se piden los datos desde el 1 de enero; para el resto, los últimos 30 días y 16 de previsión. Se repite cada 30 minutos.
-5. **Predicción en vivo**: `aplicarVivo` (`lib/vivo.ts`) recalcula los hitos de Sevilla con la temperatura real. Los otros destinos pasan sin cambios.
+4. **Tiempo en vivo**: para cada destino se llama a `cargarTiempo` (`lib/tiempo.ts`), desde el inicio de su ventana de acumulación si ya ha empezado (Tejera Negra: 1 ago; Sevilla y Brihuega: 1 ene) o, si no, los últimos 30 días; siempre con 16 de previsión. Se repite cada 30 minutos.
+5. **Predicción en vivo**: `aplicarVivo` (`lib/vivo.ts`) recalcula los hitos con la temperatura real: Sevilla con su modelo de grados-día, Brihuega y Tejera Negra con el modelo térmico experimental.
 6. **Comunidad**: se leen las observaciones propias de `localStorage` y se suman las 5 semillas de ejemplo (`SEMILLAS`). Con ellas, `calcularAjuste` (`lib/estado.ts`) calcula cuánto mover y estrechar los rangos de cada destino.
 7. **Estado del día**: con la fecha de la máquina del tiempo (`hoy + días`), `estadoEn` decide la fase, el porcentaje de floración y la ventana óptima de cada destino.
 8. Se pintan el **mapa** (`MapView`), la **máquina del tiempo** (`Simulador`) y el **panel lateral**: primero la lista de destinos y, al elegir uno, su **ficha** (`Ficha`).
@@ -45,7 +45,8 @@ Cada vez que cambian la fecha, las observaciones o el tiempo, React recalcula lo
 hackathon/
 ├── data/                      CSV de partida (los entrega el reto; no se editan)
 ├── pipeline/
-│   └── build.py               CSV → destinos.json
+│   ├── build.py               CSV → destinos.json
+│   └── clima/                 histórico de Open-Meteo (Brihuega 2016–2026, Tejera Negra 2018–2025)
 ├── web/
 │   ├── index.html
 │   ├── package.json · package-lock.json · tsconfig.json · vite.config.ts
@@ -109,6 +110,7 @@ Se ejecuta con `python pipeline/build.py` y escribe `web/public/data/destinos.js
 | `destino_sevilla()` | Arma el destino «Azahar de Sevilla» con el modelo, sus fases, la curva de intensidad y la confianza **baja**. |
 | `destino_brihuega()` | Copia la predicción 2027 del CSV, deriva «Primeras flores» y «Floración activa» (marcados `supuesto`), añade el avance de la cosecha 2026 y la confianza **media**. |
 | `destino_tejera()` | Convierte el calendario a fechas de 2026 (probable = mediana ± ¼ del rango; amplio = mínimo–máximo), añade «Empieza a caer la hoja» y «Hayedo desnudo» (`supuesto`), la serie de color y el clima. Confianza **media**, o **baja** si `otono_hitos.csv` trae `revisar = True` (como ahora). |
+| `clima_openmeteo`, `modelo_termico`, `termico_brihuega`, `termico_tejera`, `desplazamiento` | Modelo térmico experimental de Brihuega (calor desde el 1 ene) y Tejera Negra (frío desde el 1 ago): descarga una vez el histórico de Open-Meteo a `pipeline/clima/`, calibra el umbral con la fecha media del CSV para varias temperaturas base y guarda la temperatura media diaria de cada año de referencia (`termico` en el JSON). En Brihuega hace además la prueba con 2026 frente a la cosecha real. |
 | `main()` | Junta los 3 destinos, escribe el JSON e imprime un resumen del modelo de Sevilla. |
 
 ### 4.4 `web/` — configuración
@@ -151,8 +153,8 @@ Se ejecuta con `python pipeline/build.py` y escribe `web/public/data/destinos.js
 | `tipos.ts` | Tipos TypeScript del JSON (`Destino`, `Hito`, `Fase`, `Confianza`, `ModeloSevilla`) y de la comunidad (`Observacion`, `Alerta`). |
 | `fechas.ts` | Utilidades de fechas en UTC: sumar días, días entre fechas y formatos «21 oct», «21 oct 2026», «hace 3 días». |
 | `estado.ts` | El corazón de la web. **`estadoEn(destino, fecha, ajuste)`**: devuelve la fase, la etiqueta, el % de floración (interpolando la curva), la ventana óptima con sus rangos y la próxima fecha de inicio. Los hayedos repiten su calendario cada año. **`calcularAjuste`**: combina las observaciones en un desplazamiento y un estrechamiento (constantes en `CIUDADANA`). **`hitosAjustados`**: aplica ese ajuste a los hitos. También contiene `haversineKm` (distancia) y `opcionesFase` (opciones del formulario). |
-| `vivo.ts` | Predicción en vivo de Sevilla con **años análogos**: suma el calor real (observado + previsión) hasta donde hay datos y completa el resto con el calor diario de cada uno de los 14 años. Usa los mismos percentiles que el pipeline y lo reproduce exactamente si no hay datos en vivo. Antes del 1 ene 2027 no cambia nada y lo explica. |
-| `tiempo.ts` | Cliente de Open-Meteo. Usa la API de previsión (`past_days` + 16 días) y, para fechas de hace más de 92 días, la de archivo. Caché de 30 min en `localStorage`. Si falla la red: caché → CSV (solo Tejera Negra) → «sin datos». `fusionar` une el CSV con los datos en vivo; si se solapan, gana Open-Meteo. |
+| `vivo.ts` | Predicción en vivo de los 3 destinos (`aplicarVivo`). **Brihuega y Tejera Negra** (`aplicarTermico`, `desplazamientoTermico`): desplazan las fechas del CSV los días que el calor o frío acumulado real va por delante o por detrás de los años de referencia, sin estrechar márgenes (modelo experimental). **Sevilla**, con **años análogos**: suma el calor real (observado + previsión) hasta donde hay datos y completa el resto con el calor diario de cada uno de los 14 años. Usa los mismos percentiles que el pipeline y lo reproduce exactamente si no hay datos en vivo. Antes del 1 ene 2027 no cambia nada y lo explica. |
+| `tiempo.ts` | Cliente de Open-Meteo. Usa la API de previsión (`past_days` + 16 días) y, para fechas de hace más de 30 días, la de archivo (la de previsión solo trae ~40 días hacia atrás). Caché de 30 min en `localStorage`. Si falla la red: caché → CSV (solo Tejera Negra) → «sin datos». `fusionar` une el CSV con los datos en vivo; si se solapan, gana Open-Meteo. |
 | `openmeteo.ts` | `anomaliaSevilla`: compara el calor acumulado del año en curso (enero–abril, API de archivo) con la media histórica y dice si la temporada va adelantada o retrasada. Si no hay red, usa el último año del CSV. Se muestra en la ficha de Sevilla. |
 | `repos.ts` | Acceso a los datos de la comunidad. Hoy guarda en `localStorage` (`cf.obs`, `cf.alertas`); para producción basta con implementar las mismas interfaces contra una API. Incluye las 5 observaciones `SEMILLAS` de ejemplo, con fechas relativas a «hoy». |
 | `agencia.ts` | Lógica pura de la agencia. `generarRuta(destino, días, personas, alojamiento?)`: arma el itinerario día a día con plantillas fijas (1 día: mañana, comida, tarde; día 1: check-in, tarde, cena; intermedios: mañana, comida, tarde, cena, noche; último: check-out, mañana, comida), sin repetir actividades ni restaurantes (si faltan, deja «tiempo libre» y avisa). Restaurantes por mejor valoración; alojamiento por defecto = mejor valoración verificada entre los de precio medio o inferior (`elegirAlojamiento`). `calcularPrecio(ruta, personas, margen)`: todo en céntimos enteros (alojamiento = noches × habitaciones × precio medio; habitaciones = personas / 2 redondeado arriba), subtotal, margen y total que cuadran. Pruebas en `agencia.test.ts` (Vitest). |
@@ -193,6 +195,7 @@ Se ejecuta con `python pipeline/build.py` y escribe `web/public/data/destinos.js
 | `anuncios.py` | Página de anuncios: menú, selector y URL, enlaces externos (abre una búsqueda de Booking y otra de Google Maps), fuente de cada valoración, banner sin navegación, enlace desde la ficha, desbordes y capturas en 3 tamaños. | `python tests/anuncios.py` |
 | `agencia.py` | Página de agencia: menú, cambios de destino/días/personas/alojamiento en ruta, precio y URL, desglose que cuadra con el margen, enlaces (abre Booking y Google Maps), valoraciones con fuente, etiqueta de precio ficticio en todos los precios, diálogo y capturas en 3 tamaños. | `python tests/agencia.py` |
 | `web/src/lib/agencia.test.ts` | Pruebas unitarias (Vitest) de `generarRuta` y `calcularPrecio` para todos los destinos, de 1 a 5 días y de 1 a 6 personas. | `cd web && npm test` |
+| `termico.mts` | Modelo térmico: sin datos no mueve nada, la web reproduce el cálculo del pipeline (Brihuega 2026), Tejera Negra en vivo con Open-Meteo sin huecos y sin estrechar márgenes, y Brihuega no se mueve antes del 1 de enero. | `node tests/termico.mts` |
 | `vivo.mts` | Que la predicción en vivo reproduce el pipeline sin datos y que, con datos reales de 2025 (excluido de los análogos), se acerca a la fecha real. | `node tests/vivo.mts` |
 
 ### 4.10 `.claude/skills/`

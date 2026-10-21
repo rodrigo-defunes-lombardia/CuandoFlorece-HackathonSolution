@@ -6,6 +6,7 @@ Nada se inventa aquí salvo lo marcado con `supuesto=True` (hitos derivados de d
 import json
 from datetime import date, timedelta
 from pathlib import Path
+from urllib.request import urlopen
 
 import numpy as np
 import pandas as pd
@@ -13,6 +14,7 @@ import pandas as pd
 RAIZ = Path(__file__).resolve().parent.parent
 DATOS = RAIZ / "data"
 SALIDA = RAIZ / "web" / "public" / "data"
+CLIMA = Path(__file__).resolve().parent / "clima"  # histórico de Open-Meteo descargado una vez (se versiona para poder reconstruir sin red)
 HOY = date(2026, 10, 21)  # fecha de la demo (se puede sobrescribir con --hoy en el futuro)
 
 
@@ -321,9 +323,105 @@ def destino_tejera():
     }
 
 
+# ---------------------------------------------------------------- Modelo térmico experimental (Brihuega y Tejera Negra)
+# No hay fechas de floración por año para estos destinos, así que no se puede calibrar un modelo de verdad.
+# Supuesto explícito: la fecha media del CSV corresponde al calor (lavanda) o frío (hayedo) acumulado medio de los
+# años de referencia. Con la temperatura real del año se mide cuánto se adelanta o retrasa ese acumulado y se desplazan
+# las fechas del CSV, SIN estrechar los márgenes. Como la temperatura base es desconocida, se prueban varias y se usa la mediana.
+
+def clima_openmeteo(nombre, lat, lon, inicio, fin):
+    """Serie diaria de Open-Meteo (API de archivo, sin clave). Se descarga una vez y se guarda en pipeline/clima/."""
+    CLIMA.mkdir(exist_ok=True)
+    ruta = CLIMA / f"{nombre}_{inicio}_{fin}.csv"
+    if not ruta.exists():
+        url = (f"https://archive-api.open-meteo.com/v1/archive?latitude={lat}&longitude={lon}&start_date={inicio}&end_date={fin}"
+               "&daily=temperature_2m_max,temperature_2m_min&timezone=Europe%2FMadrid")
+        j = json.load(urlopen(url, timeout=90))["daily"]
+        pd.DataFrame({"fecha": j["time"], "tmax": j["temperature_2m_max"], "tmin": j["temperature_2m_min"]}).to_csv(ruta, index=False)
+    return pd.read_csv(ruta, parse_dates=["fecha"])
+
+
+def tmed_temporada(clima, anio, inicio_mmdd, n):
+    ini = pd.Timestamp(f"{anio}-{inicio_mmdd}")
+    c = clima[(clima.fecha >= ini) & (clima.fecha < ini + pd.Timedelta(days=n))]
+    return [round(float(v), 2) for v in ((c.tmax + c.tmin) / 2)]
+
+
+def indice(tmed, tipo, base):
+    return [max(0.0, t - base) if tipo == "calor" else max(0.0, base - t) for t in tmed]
+
+
+def cruce(serie, umbral):
+    acc = 0.0
+    for i, v in enumerate(serie):
+        acc += v
+        if acc >= umbral - 1e-6:
+            return i
+    return None
+
+
+def desplazamiento(m, tmed_actual):
+    """Mediana entre bases de (día de cruce con datos reales − día de cruce climatológico). Igual que lib/vivo.ts."""
+    k = len(tmed_actual)
+    deltas = []
+    for b in m["bases"]:
+        U = m["umbrales"][str(b)]
+        clim, real = [], []
+        for y in m["anios"]:
+            h = indice(m["tmed_diario"][str(y)], m["tipo"], b)
+            obs = indice(tmed_actual, m["tipo"], b)
+            clim.append(cruce(h, U))
+            real.append(cruce([obs[i] if i < k else h[i] for i in range(len(h))], U))
+        deltas.append(float(np.median([x for x in real if x is not None]) - np.median([x for x in clim if x is not None])))
+    return float(np.median(deltas)), deltas
+
+
+def modelo_termico(clima, tipo, inicio_mmdd, n, anios, bases, hito_ref, fecha_ref, explicacion):
+    tmed = {int(y): tmed_temporada(clima, y, inicio_mmdd, n) for y in anios}
+    n = min(len(v) for v in tmed.values())
+    tmed = {y: v[:n] for y, v in tmed.items()}
+    D = (fecha_ref - date(fecha_ref.year, int(inicio_mmdd[:2]), int(inicio_mmdd[3:]))).days
+    umbrales = {str(b): round(float(np.median([sum(indice(v, tipo, b)[:D + 1]) for v in tmed.values()])), 4) for b in bases}
+    return {"tipo": tipo, "inicio": inicio_mmdd, "anios": [int(y) for y in anios], "bases": bases, "hito_ref": hito_ref,
+            "dia_ref": D, "umbrales": umbrales, "tmed_diario": {str(y): v for y, v in tmed.items()},
+            "fuente": "Open-Meteo (API de archivo)", "explicacion": explicacion}
+
+
+def termico_brihuega(dest):
+    clima = clima_openmeteo("brihuega", dest["lat"], dest["lon"], "2016-01-01", "2026-08-31")
+    ref = next(h for h in dest["hitos"] if h["id"] == "pico_ini")
+    m = modelo_termico(clima, "calor", "01-01", 243, range(2016, 2026), [3, 5, 7], "pico_ini", d(ref["central"]),
+                       "Calor acumulado desde el 1 de enero (media diaria por encima de 3, 5 o 7 °C). Umbral = calor medio "
+                       "de 2016–2025 a la fecha central de plena flor del CSV. Base de temperatura y años de referencia supuestos; "
+                       "no hay fechas de floración por año para validarlo.")
+    # Validación con 2026 (fuera de la calibración): desplazamiento del modelo frente al de la cosecha real por satélite
+    delta, por_base = desplazamiento(m, tmed_temporada(clima, 2026, "01-01", 243))
+    temp = pd.read_csv(DATOS / "temporada_brihuega.csv").iloc[0]
+    pred = pd.read_csv(DATOS / "prediccion_2027_brihuega.csv").set_index("hito")
+    real = {k: (d(temp[k]) - d(pred.loc[k, "central"]).replace(year=2026)).days for k in ("cosecha_10", "cosecha_50")}
+    m["validacion"] = {"anio": 2026, "desplazamiento_modelo": round(delta, 1), "por_base": [round(x, 1) for x in por_base],
+                       "desplazamiento_cosecha_real": real,
+                       "nota": ("Prueba con 2026 (año no usado para calibrar): con su temperatura real, el modelo habría adelantado la "
+                                f"plena flor {f'{abs(delta):.1f}'.replace('.', ',')} días; la cosecha real de 2026 (satélite, ±3 d) llegó {abs(real['cosecha_10'])} días antes "
+                                f"que la fecha climatológica del 10 % cortado y {abs(real['cosecha_50'])} antes que la del 50 %. Misma dirección, "
+                                "pero el modelo exagera; además es otra fase (cosecha, no flor) y un solo año.")}
+    return m
+
+
+def termico_tejera(dest):
+    clima = clima_openmeteo("tejera_negra", dest["lat"], dest["lon"], "2018-08-01", "2025-12-31")
+    ref = next(h for h in dest["hitos"] if h["id"] == "floracion")
+    return modelo_termico(clima, "frio", "08-01", 153, range(2018, 2026), [16, 18, 20], "floracion", d(ref["central"]),
+                          "Frío acumulado desde el 1 de agosto (media diaria por debajo de 16, 18 o 20 °C). Umbral = frío medio "
+                          "de 2018–2025 a la fecha central de «color avanzado» del calendario. Base y años de referencia supuestos; "
+                          "el calendario no trae fechas por año para validarlo.")
+
+
 def main():
     SALIDA.mkdir(parents=True, exist_ok=True)
     destinos = [destino_tejera(), destino_brihuega(), destino_sevilla()]
+    destinos[0]["termico"] = termico_tejera(destinos[0])
+    destinos[1]["termico"] = termico_brihuega(destinos[1])
     salida = {"generado": iso(HOY), "hoy_demo": iso(HOY), "destinos": destinos}
     (SALIDA / "destinos.json").write_text(json.dumps(salida, ensure_ascii=False, default=str), encoding="utf-8")
     m = destinos[2]["modelo"]
@@ -333,6 +431,10 @@ def main():
     for h in destinos[2]["hitos"]:
         print("  ", h["id"], h["central"], h["probable"], h["amplia"])
     print("   backtest", m["backtest_loo"])
+    for x in destinos[:2]:
+        t = x["termico"]
+        print(f"OK modelo térmico {x['id']}: {t['tipo']} desde {t['inicio']}, día ref {t['dia_ref']}, umbrales {t['umbrales']}")
+    print("   validación Brihuega 2026:", destinos[1]["termico"]["validacion"])
 
 
 if __name__ == "__main__":

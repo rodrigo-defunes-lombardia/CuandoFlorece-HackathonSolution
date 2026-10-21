@@ -33,17 +33,19 @@ export async function cargarTiempo({ id, lat, lon, desde, csv, forzar }: Opcione
   if (!forzar && cache && fresca) return { ...cache, origen: 'cache', nota: 'Open-Meteo (caché de menos de 30 min)' }
   try {
     const inicio = desde ?? resta(hoy, 30)
-    const reciente = Math.min(7, 92)
+    const reciente = 7
     let dias: DiaTiempo[] = []
-    if (inicio < resta(hoy, 92)) {
-      // Tramo antiguo: API de archivo (retraso de ~5 días); el resto lo cubre la API de previsión con past_days.
+    // La API de previsión solo trae ~40 días hacia atrás (los anteriores llegan vacíos): más allá de 30 días se usa la de archivo.
+    if (inicio < resta(hoy, 30)) {
+      // Tramo antiguo: API de archivo (retraso de unos días); los últimos 7 días y la previsión, con la API de previsión.
       const fin = resta(hoy, reciente + 1)
       const ar = await pedir(`https://archive-api.open-meteo.com/v1/archive?latitude=${lat}&longitude=${lon}&start_date=${inicio}&end_date=${fin}&${DAILY}`)
       dias = aDias(ar, hoy)
       const pr = await pedir(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&past_days=${reciente}&forecast_days=16&${DAILY}`)
-      const ya = new Set(dias.map(d => d.fecha)); dias = dias.concat(aDias(pr, hoy).filter(d => !ya.has(d.fecha)))
+      const ya = new Set(dias.filter(d => d.tmax !== null).map(d => d.fecha))
+      dias = dias.filter(d => d.tmax !== null).concat(aDias(pr, hoy).filter(d => !ya.has(d.fecha)))
     } else {
-      const pas = Math.max(1, Math.min(92, Math.round((Date.parse(hoy) - Date.parse(inicio)) / 86400000)))
+      const pas = Math.max(1, Math.min(30, Math.round((Date.parse(hoy) - Date.parse(inicio)) / 86400000)))
       dias = aDias(await pedir(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&past_days=${pas}&forecast_days=16&${DAILY}`), hoy)
     }
     const t: Tiempo = { origen: 'vivo', actualizado: new Date().toISOString(), dias, nota: 'Open-Meteo en vivo' }
