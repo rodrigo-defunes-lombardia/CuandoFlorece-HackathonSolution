@@ -1,8 +1,7 @@
 """Pipeline de Cuándo Florece: lee /data y escribe JSON estáticos en /web/public/data.
 
 Uso:  python pipeline/build.py
-Nada se inventa aquí salvo lo marcado con `supuesto=True` (hitos derivados) o el destino
-simulado (Valle del Jerte), que lleva `simulado=True`.
+Nada se inventa aquí salvo lo marcado con `supuesto=True` (hitos derivados de datos reales).
 """
 import json
 from datetime import date, timedelta
@@ -179,7 +178,7 @@ def destino_sevilla():
     mid = d(h["pico_ini"]["central"]) + (d(h["pico_fin"]["central"]) - d(h["pico_ini"]["central"])) / 2
     curva = [[iso(ini), 0], [iso(mid), 100], [iso(fin), 0]]
     return {
-        "id": "sevilla", "nombre": "Sevilla", "especie": "Azahar (naranjo amargo)", "tipo": "flor",
+        "id": "sevilla", "nombre": "Azahar de Sevilla", "especie": "Azahar (naranjo amargo)", "tipo": "flor",
         "region": "Andalucía", "lat": 37.3891, "lon": -5.9845, "simulado": False,
         "temporada": 2027,
         "resumen": "Los naranjos de las calles de Sevilla perfuman la ciudad entre marzo y abril.",
@@ -318,32 +317,9 @@ def destino_tejera():
     }
 
 
-# ---------------------------------------------------------------- Valle del Jerte (SIMULADO)
-def destino_jerte():
-    A = 2027
-    def hs(id_, e, c, dp, da):
-        c = date(A, *c)
-        return hito(id_, e, c, (c - timedelta(days=dp), c + timedelta(days=dp)), (c - timedelta(days=da), c + timedelta(days=da)),
-                    "Simulado", "Valor inventado para la demo.")
-    hitos = [hs("inicio", "Primeros brotes", (3, 14), 3, 9), hs("floracion", "Floración activa", (3, 22), 3, 9),
-             hs("pico_ini", "Entra en pico", (3, 28), 4, 10), hs("pico_fin", "Sale del pico", (4, 6), 4, 10), hs("fin", "Fin de floración", (4, 15), 5, 11)]
-    ini, fl, pi, pf, fin = (d(x["central"]) for x in hitos)
-    return {
-        "id": "jerte", "nombre": "Valle del Jerte", "especie": "Cerezo en flor", "tipo": "flor", "region": "Extremadura (Cáceres)",
-        "lat": 40.2230, "lon": -5.7700, "simulado": True, "temporada": 2027,
-        "resumen": "Destino de ejemplo para mostrar cómo escalaría la plataforma. Todos sus datos son inventados.",
-        "hitos": hitos,
-        "fases": [{"id": "brote", "etiqueta": "Brote", "hito_inicio": "inicio"}, {"id": "floracion", "etiqueta": "Floración activa", "hito_inicio": "floracion"},
-                  {"id": "pico", "etiqueta": "Pico", "hito_inicio": "pico_ini"}, {"id": "caida", "etiqueta": "Caída", "hito_inicio": "pico_fin"}],
-        "fin": "fin", "ventana": ["pico_ini", "pico_fin"], "curva": [[iso(ini), 0], [iso(pi), 100], [iso(pf), 100], [iso(fin), 0]],
-        "confianza": {"nivel": "simulada", "anios": 0, "observaciones": 0, "texto": "Simulado · sin datos reales. Solo ilustra el producto."},
-        "origenes": ["Simulado"], "enlaces": {},
-    }
-
-
 def main():
     SALIDA.mkdir(parents=True, exist_ok=True)
-    destinos = [destino_tejera(), destino_brihuega(), destino_sevilla(), destino_jerte()]
+    destinos = [destino_tejera(), destino_brihuega(), destino_sevilla()]
     salida = {"generado": iso(HOY), "hoy_demo": iso(HOY), "destinos": destinos}
     (SALIDA / "destinos.json").write_text(json.dumps(salida, ensure_ascii=False, default=str), encoding="utf-8")
     m = destinos[2]["modelo"]

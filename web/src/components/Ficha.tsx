@@ -160,11 +160,5 @@ function Evolucion({ d, fecha, hoy, anom }: { d: Destino; fecha: string; hoy: st
       </details>
     </>)
   }
-  // Valle del Jerte (simulado)
-  return (<>
-    <Badge origen="Simulado" />
-    <Grafico titulo="Intensidad de floración simulada" descripcion="Curva inventada para la demostración." xFmt={fmtF}
-      series={[{ nombre: 'Intensidad simulada (%)', color: 'var(--lila-2)', punteada: true, puntos: d.curva.map(([f, p]) => [x(f), p]) }]} yFmt={v => `${Math.round(v)} %`} yMin={0} yMax={100} marcas={marcaHoy} />
-    <p className="nota">Simulado · sin datos reales.</p>
-  </>)
+  return null
 }

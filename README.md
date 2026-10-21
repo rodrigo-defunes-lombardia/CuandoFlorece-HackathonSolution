@@ -1,6 +1,6 @@
 # Cuándo Florece · el mapa vivo de la floración en España
 
-Prototipo para el reto de Greenia (Hackathon EPS UFV, 20–22 oct 2026). Mapa con 4 destinos, estado de floración con margen de confianza, simulador de fecha, verificación ciudadana, alertas simuladas y página de negocio.
+Prototipo para el reto de Greenia (Hackathon EPS UFV, 20–22 oct 2026). Mapa con 3 destinos, estado de floración con margen de confianza, simulador de fecha, verificación ciudadana, alertas simuladas y página de negocio.
 
 ## Arrancar desde cero
 ```bash
@@ -25,9 +25,8 @@ Los CSV viven en `data/` (los 12 están presentes).
 | Tejera Negra: "hoja cayendo" y "hayedo desnudo" | **Supuesto** marcado (≈7 y ≈28 días tras el pleno; no hay dato) |
 | Brihuega: predicción 2027, cosecha 2026 | **Real** (climatología v0, 10 temporadas; cosechas por satélite ±3 d) |
 | Brihuega: "primeras flores" y "floración activa" | **Supuesto** marcado (derivados del margen de plena flor) |
-| Sevilla: modelo de grados-día con `meteo_sevilla.csv` | **Real**, con calibración débil (2 años) |
+| Azahar de Sevilla: modelo de grados-día con `meteo_sevilla.csv` | **Real**, con calibración débil (2 años) |
 | Open-Meteo en vivo (anomalía de la temporada 2026) | **Real**, con fallback automático al CSV |
-| Valle del Jerte | **Simulado** (etiquetado en todas partes) |
 | Observaciones semilla (5) | **Demo**, marcadas "de ejemplo" |
 | Alertas, botón AR, partners | **Simulado** ("Ejemplo" / "Demo") |
 | Fecha "hoy" | Fijada a 21 oct 2026 en el pipeline (`HOY`), para que la demo sea reproducible |

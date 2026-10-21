@@ -20,11 +20,11 @@ with sync_playwright() as p:
         pg.on("console", lambda m: logs.append(m.text) if m.type in ("error", "warning") else None)
         pg.on("pageerror", lambda e: logs.append(str(e)))
         pg.goto(URL); pg.wait_for_selector(".marca", timeout=15000); pg.wait_for_timeout(1500)
-        ok(pg.locator(".marca").count() == 4, f"[{nombre}] 4 destinos en el mapa")
+        ok(pg.locator(".marca").count() == 3, f"[{nombre}] 3 destinos en el mapa")
         ok(pg.evaluate("document.documentElement.scrollWidth <= innerWidth"), f"[{nombre}] sin desborde horizontal")
         pg.screenshot(path=str(OUT / f"{nombre}_1_inicio.png"))
         if nombre == "escritorio":
-            for dest in ["Hayedo de Tejera Negra", "Brihuega", "Sevilla", "Valle del Jerte"]:
+            for dest in ["Hayedo de Tejera Negra", "Brihuega", "Sevilla"]:
                 pg.locator(".tarjeta", has_text=dest).click()
                 pg.wait_for_selector(".ficha")
                 t = pg.inner_text(".ficha")

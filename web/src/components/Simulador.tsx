@@ -2,7 +2,7 @@ import { corta } from '../lib/fechas'
 
 const SALTOS = [
   { v: '', t: 'Saltar a…' }, { v: '0', t: 'Hoy' }, { v: '2027-03-15', t: 'Mediados de marzo 2027' },
-  { v: '2027-04-01', t: '1 abril 2027 · azahar y cerezo' }, { v: '2027-07-05', t: '5 julio 2027 · lavanda' },
+  { v: '2027-04-01', t: '1 abril 2027 · azahar' }, { v: '2027-07-05', t: '5 julio 2027 · lavanda' },
 ]
 export function Simulador({ dias, fecha, hoy, onChange }: { dias: number; fecha: string; hoy: string; onChange: (d: number) => void }) {
   const saltar = (v: string) => {
