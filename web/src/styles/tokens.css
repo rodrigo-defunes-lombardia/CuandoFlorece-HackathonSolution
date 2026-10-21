@@ -1,0 +1,16 @@
+/* Tokens de diseño – única fuente de verdad (ver DESIGN.md). No usar colores sueltos en componentes. */
+:root {
+  --bg: #2B2333; --bg-2: #352C40; --bg-3: #40364D; --line: #52465F;
+  --text: #FAF7F0; --text-dim: #C9C0D4; --text-faint: #9C91A9;
+  --amber: #F0B35A; --amber-ink: #2B2333;
+  --lila: #8E6FC4; --lila-2: #A98BD9; --lila-soft: #CDB9EC;
+  /* Estados de floración (semántica fija) */
+  --st-fuera: #6F647C; --st-brote: #CDB9EC; --st-floracion: #A98BD9; --st-pico: #F0B35A; --st-caida: #8B6471;
+  /* Rampa hayedo (verde → ocre → cobre) */
+  --hy-verde: #7FA36B; --hy-cambiando: #C4B14E; --hy-avanzado: #D69A3E; --hy-pleno: #C0662F; --hy-caida: #8B5A44;
+  --danger: #E88A8A; --ok: #8BD3A8;
+  --font-serif: 'Fraunces', Georgia, serif; --font-sans: 'Inter', system-ui, sans-serif;
+  --r-sm: 8px; --r-md: 14px; --r-lg: 22px;
+  --s-1: 4px; --s-2: 8px; --s-3: 12px; --s-4: 16px; --s-5: 24px; --s-6: 32px;
+  --shadow: 0 10px 30px rgba(10, 6, 16, .45);
+}

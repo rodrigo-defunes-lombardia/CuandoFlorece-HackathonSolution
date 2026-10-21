@@ -1,0 +1,10 @@
+# Sistema de diseño · Cuándo Florece
+- **Estilo:** editorial, sereno y natural sobre fondo oscuro violeta-ciruela; mapa como protagonista, datos con jerarquía.
+- **Paleta:** fondo `#2B2333`, superficies `#352C40/#40364D`, texto crema `#FAF7F0`; acento ámbar `#F0B35A` (hoy, CTA, pico); lilas `#8E6FC4/#A98BD9` (floración).
+- **Estados:** fuera de temporada gris-lila · brote lila claro · floración lila medio · pico ámbar · caída marrón-ciruela. Siempre con etiqueta de texto y forma distinta.
+- **Hayedos:** rampa verde → ocre → cobre (`--hy-*`) con leyenda.
+- **Tipografía:** Fraunces (títulos, serif editorial) + Inter (datos).
+- **Espaciado:** escala 4/8/12/16/24/32. **Radios:** 8/14/22. **Sombra:** una sola, `--shadow`.
+- **Marca:** flor de seis pétalos (SVG propio, `components/Flor.tsx`).
+- **Accesibilidad:** foco ámbar de 3 px, contraste ≥ 4,5:1 en texto, significado nunca solo por color.
+- **Datos:** badges de origen `Satélite / Modelo grados-día / Calendario histórico / Comunidad (N) / Simulado`; lo simulado lleva borde discontinuo.
