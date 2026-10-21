@@ -12,12 +12,8 @@ import { Ficha } from './components/Ficha'
 import { FormObs } from './components/FormObs'
 import { FormAlerta } from './components/FormAlerta'
 import { Negocio } from './components/Negocio'
-import { Modal } from './components/Modal'
 import { cargarTiempo, fusionar, type DiaTiempo, type Tiempo } from './lib/tiempo'
 import { aplicarVivo, type Vivo } from './lib/vivo'
-
-/** URL oficial de Greenia: no la conocemos con certeza, se rellena antes de la demo. */
-const URL_GREENIA = 'https://cuandoflorece.es/es'
 
 export default function App() {
   const [datos, setDatos] = useState<Datos | null>(null)
@@ -26,7 +22,7 @@ export default function App() {
   const [sel, setSel] = useState<string | null>(null)
   const [dias, setDias] = useState(0)
   const [obs, setObs] = useState<Observacion[]>([])
-  const [modal, setModal] = useState<null | 'obs' | 'alerta' | 'ar'>(null)
+  const [modal, setModal] = useState<null | 'obs' | 'alerta'>(null)
 
   useEffect(() => {
     fetch('/data/destinos.json').then(r => { if (!r.ok) throw new Error(); return r.json() }).then(setDatos)
@@ -90,7 +86,7 @@ export default function App() {
               {d ? (
                 <Ficha d={d} fecha={fecha} hoy={hoy} ajuste={ajustes[d.id]} obs={obs.filter(o => o.destinoId === d.id)}
                   tiempo={vd?.tiempo} vivo={vd?.vivo} cargandoTiempo={cargandoT} onRefrescar={() => refrescar(true)}
-                  onVolver={() => setSel(null)} onAlerta={() => setModal('alerta')} onObs={() => setModal('obs')} onAR={() => setModal('ar')} />
+                  onVolver={() => setSel(null)} onAlerta={() => setModal('alerta')} onObs={() => setModal('obs')} />
               ) : (
                 <div>
                   <h1 className="titulo">El mapa vivo de la floración en España</h1>
@@ -114,14 +110,6 @@ export default function App() {
             </aside>
             {d && modal === 'obs' && <FormObs destino={d} hoy={hoy} todas={obs} onClose={() => setModal(null)} onGuardada={recargar} />}
             {d && modal === 'alerta' && <FormAlerta destino={d} onClose={() => setModal(null)} />}
-            {d && modal === 'ar' && (
-              <Modal titulo="Vive la experiencia AR" onClose={() => setModal(null)}>
-                <p className="banner-sim">Simulado · esto no abre ninguna experiencia real.</p>
-                <p>Aquí enlazaríamos con las gafas de realidad aumentada de Greenia para ver {d.nombre} en su mejor momento antes de ir, o superponer la floración del año pasado.</p>
-                <p className="nota">Enlace a Greenia (configurable en <code>URL_GREENIA</code>, <code>App.tsx</code>).</p>
-                {URL_GREENIA && <a className="btn btn--primario" href={URL_GREENIA} target="_blank" rel="noreferrer">Conocer Greenia (se abre en otra pestaña)</a>}
-              </Modal>
-            )}
           </>)}
         </main>
       )}

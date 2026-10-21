@@ -28,7 +28,7 @@ Los CSV viven en `data/` (los 12 están presentes).
 | Azahar de Sevilla: modelo de grados-día con `meteo_sevilla.csv` | **Real**, con calibración débil (2 años) |
 | Open-Meteo en vivo: tiempo de los 3 destinos, anomalía de 2026 y predicción de Sevilla en temporada | **Real**, con respaldo a caché local y al CSV |
 | Observaciones semilla (5) | **Demo**, marcadas "de ejemplo" |
-| Alertas, botón AR, partners | **Simulado** ("Ejemplo" / "Demo") |
+| Alertas, partners | **Simulado** ("Ejemplo" / "Demo") |
 | Fecha "hoy" | La del dispositivo (nunca anterior al 21 oct 2026, fecha de los datos): las vistas avanzan solas |
 
 ## Modelo de Sevilla (grados-día)
@@ -63,7 +63,6 @@ Constantes en `web/src/lib/estado.ts` (`CIUDADANA`). No está validado con datos
 - `referencia_fechas.csv` no trae percentiles: el rango "probable" de los calendarios es mediana ± ¼ del rango.
 - `meteo_sevilla.csv` termina el 31-12-2025; los días fuera de temporada muestran "Fuera de temporada" y la próxima ventana.
 - La comunidad vive en el navegador: no se comparte entre dispositivos.
-- El botón AR enlaza a https://cuandoflorece.es/es (URL indicada por el equipo; se cambia en `URL_GREENIA`, `App.tsx`).
 
 ## Hacia producción (que se sostenga solo)
 1. **Sentinel-2** automático (STAC/Planetary Computer) → índices por parcela cada pasada de 5 días.

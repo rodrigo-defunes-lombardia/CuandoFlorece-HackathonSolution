@@ -13,9 +13,6 @@ export function Negocio() {
         <article className="neg"><h2>Viajeros <small>B2C</small></h2>
           <p>Alertas gratuitas que atraen y alertas premium con más destinos y mejor margen de confianza, rutas de varios días y experiencias guiadas en torno a la floración.</p>
           <p className="neg-dato">Modelo: freemium + rutas y experiencias.</p></article>
-        <article className="neg neg--ar"><h2>Sinergia con Greenia</h2>
-          <p>Cada ficha termina en una experiencia de realidad aumentada: con las gafas de Greenia el visitante ve el hayedo en su pleno color antes de llegar, o la lavanda del año pasado sobre el campo vacío. La plataforma alimenta a Greenia de público y Greenia da a la plataforma su gancho diferencial.</p>
-          <p className="neg-dato">Modelo: AR como producto estrella en cada destino.</p></article>
       </div>
       <section className="neg-foso"><h2>Por qué se sostiene</h2>
         <ul>

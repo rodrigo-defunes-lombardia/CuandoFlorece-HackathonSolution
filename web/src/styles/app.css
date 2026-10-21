@@ -99,7 +99,6 @@ nav a.on{background:var(--bg-3);color:var(--text)}
 .btn:hover{border-color:var(--lila-2)}
 .btn--primario{background:var(--amber);color:var(--amber-ink);border-color:var(--amber)}
 .btn--suave{font-weight:500;font-size:.85rem;min-height:40px;padding:8px 12px}
-.btn--ar{border:1.5px dashed var(--lila-2);color:var(--lila-soft)} .btn--ar small{font-weight:500;border:1px dashed var(--danger);color:#F4C1C1;border-radius:99px;padding:0 8px}
 .btn-icono{all:unset;cursor:pointer;padding:8px 12px;border-radius:8px;color:var(--text-dim)}
 .partners{display:grid;gap:var(--s-2)}.partner{border:1.5px dashed var(--line);border-radius:var(--r-sm);padding:var(--s-3)}.partner p{margin:2px 0 0;color:var(--text-dim);font-size:.85rem}
 .tag-ej{font-size:.68rem;text-transform:uppercase;letter-spacing:.06em;color:var(--lila-soft);border:1px dashed var(--lila);padding:1px 7px;border-radius:99px;display:inline-block;margin-right:6px}
@@ -119,7 +118,7 @@ fieldset{border:0;padding:0;margin:0 0 var(--s-3)}legend{font-weight:600;margin-
 .pagina h1{font-size:2rem}.lead{font-size:1.1rem;color:var(--text-dim)}
 .negocio-rejilla{display:grid;gap:var(--s-4);margin:var(--s-5) 0}
 .neg{background:var(--bg-2);border:1px solid var(--line);border-radius:var(--r-md);padding:var(--s-4)}.neg small{font-family:var(--font-sans);color:var(--amber);font-size:.7rem;border:1px solid var(--amber);border-radius:99px;padding:1px 8px;vertical-align:middle;margin-left:6px}
-.neg--ar{border-color:var(--lila-2);background:linear-gradient(160deg,var(--bg-3),var(--bg-2))}.neg-dato{color:var(--amber);font-size:.85rem;font-weight:600}
+.neg-dato{color:var(--amber);font-size:.85rem;font-weight:600}
 .neg-foso li{margin-bottom:8px}
 .cargando{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;gap:12px;flex-direction:column;color:var(--text-dim)}
 .gira{--c:var(--amber);animation:gira 4s linear infinite}@keyframes gira{to{transform:rotate(360deg)}}
@@ -129,7 +128,7 @@ fieldset{border:0;padding:0;margin:0 0 var(--s-3)}legend{font-weight:600;margin-
   .flota{left:480px;right:auto;top:auto;bottom:36px;width:420px}
   .panel{left:var(--s-4);right:auto;top:var(--s-4);bottom:var(--s-4);width:420px;height:auto;border-radius:var(--r-lg);border:1px solid var(--line);box-shadow:var(--shadow)}
   .modal-fondo{align-items:center}.modal{border-radius:var(--r-lg)}
-  .negocio-rejilla{grid-template-columns:1fr 1fr}
+  .negocio-rejilla{grid-template-columns:repeat(3,1fr)}
   .acciones{grid-template-columns:1fr}
 }
 
