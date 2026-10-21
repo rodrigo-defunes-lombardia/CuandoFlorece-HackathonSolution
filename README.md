@@ -8,7 +8,7 @@ python3 -m venv .venv && .venv/bin/pip install pandas numpy
 .venv/bin/python pipeline/build.py      # genera web/public/data/destinos.json
 cd web && npm install && npm run dev    # http://localhost:5173
 ```
-Pruebas (opcional; `pip install playwright pillow && playwright install chromium`, con la app en marcha): `python tests/e2e.py` (recorrido), `python tests/precision_mapa.py` (cada flor cae en su coordenada a varios zooms) y `node tests/vivo.mts` (predicción en vivo) y `python tests/anuncios.py` (página de anuncios).
+Pruebas (opcional; `pip install playwright pillow && playwright install chromium`, con la app en marcha): `python tests/e2e.py` (recorrido), `python tests/precision_mapa.py` (cada flor cae en su coordenada a varios zooms) y `node tests/vivo.mts` (predicción en vivo) `python tests/anuncios.py` (página de anuncios), `python tests/agencia.py` (página de agencia) y `cd web && npm test` (pruebas unitarias de la agencia, Vitest).
 Los CSV viven en `data/` (los 12 están presentes).
 
 ## Por qué esta tecnología
@@ -31,6 +31,8 @@ Los CSV viven en `data/` (los 12 están presentes).
 | Alertas, partners | **Simulado** ("Ejemplo" / "Demo") |
 | Página `/anuncios`: ayuntamientos, locales y sus valoraciones | **Real** (valoración con fuente Booking.com o Google Maps, URL y fecha de consulta 21/10/2026) |
 | Página `/anuncios`: promociones, eventos, fechas y textos | **Ficticio**, etiquetado "Ejemplo · ficticio" en cada tarjeta y con aviso fijo |
+| Página `/agencia`: alojamientos, restaurantes, actividades y valoraciones | **Real** (valoraciones de Booking.com / Google Maps del 21/10/2026; actividades verificadas en webs de turismo y prensa; lo no verificado se dice en la tarjeta) |
+| Página `/agencia`: precios y margen | **Ficticio** ("Precio estimado de ejemplo (ficticio)"); margen en `web/src/config/agencia.ts` (12 %) |
 | Fecha "hoy" | La del dispositivo (nunca anterior al 21 oct 2026, fecha de los datos): las vistas avanzan solas |
 
 ## Modelo de Sevilla (grados-día)

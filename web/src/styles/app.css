@@ -136,7 +136,7 @@ fieldset{border:0;padding:0;margin:0 0 var(--s-3)}legend{font-weight:600;margin-
 .menu a{color:var(--text-dim);text-decoration:none;font-weight:500;padding:8px 12px;border-radius:99px;min-height:40px;display:inline-flex;align-items:center}
 .menu a:hover{color:var(--text);background:var(--bg-2)}
 .menu a[aria-current="page"]{color:var(--amber-ink);background:var(--amber);font-weight:600}
-@media (max-width:420px){.marca-app span{font-size:1.05rem}.menu a{padding:6px 10px}}
+@media (max-width:440px){.marca-app span{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}.menu a{padding:6px 12px}}
 
 /* Anuncios (demo de negocio). Lo publicitario va con borde discontinuo para no confundirse con datos reales. */
 .anuncios{max-width:1120px;display:flex;flex-direction:column;gap:var(--s-5)}
@@ -180,3 +180,44 @@ fieldset{border:0;padding:0;margin:0 0 var(--s-3)}legend{font-weight:600;margin-
 @media (min-width:640px){.anu-rejilla{grid-template-columns:repeat(2,1fr)}.anu-lista{grid-template-columns:repeat(auto-fit,minmax(240px,1fr))}}
 @media (min-width:1024px){.anu-rejilla{grid-template-columns:repeat(3,1fr)}.anu-ayto{padding:var(--s-5)}}
 .anu-enlaces .btn{white-space:nowrap;font-size:.84rem}
+
+/* Agencia (demo de viajes a medida) */
+.visually-hidden{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.agencia{max-width:960px;display:flex;flex-direction:column;gap:var(--s-5)}
+.ag-form{display:grid;gap:var(--s-4);background:linear-gradient(160deg,var(--bg-3),var(--bg-2));border:1px solid var(--amber);border-radius:var(--r-lg);padding:var(--s-4)}
+.ag-form .campo{margin:0}.ag-form label[for],.ag-sel legend{font-family:var(--font-serif);font-size:1.05rem;font-weight:600}
+.ag-form select,.ag-aloj select{min-height:48px;font-size:1rem;cursor:pointer}
+.ag-form{grid-template-columns:minmax(0,1fr)}.ag-form>*{min-width:0}
+.ag-sel{margin:0;min-width:0}.ag-sel .radios{gap:6px}
+.ag-num{min-width:48px;min-height:48px;justify-content:center;font-weight:600}.ag-num.radio--on::before{content:none}
+.ag-num.radio--on{background:var(--amber);color:var(--amber-ink);border-color:var(--amber)}
+.ag-ventana{display:flex;flex-direction:column;gap:var(--s-2)}.ag-ventana p{margin:0}
+.ag-ventana-cab{display:flex;gap:var(--s-3);align-items:center}
+.ag-ahora{font-size:.9rem}
+.ag-aloj .campo{margin:0}.ag-aloj .nota{margin:var(--s-2) 0 0}
+.ag-avisos{margin:0 0 var(--s-3);padding-left:28px}
+.ag-dias{list-style:none;margin:0;padding:0;display:grid;gap:var(--s-5)}
+.ag-dia-t{font-size:1.15rem;margin-bottom:var(--s-3)}.ag-dia-n{color:var(--amber)}
+.ag-paradas{list-style:none;margin:0;padding:0 0 0 var(--s-4);border-left:2px solid var(--line);display:grid;gap:var(--s-3)}
+.ag-parada{position:relative;background:var(--bg-2);border:1px solid var(--line);border-radius:var(--r-md);padding:var(--s-3) var(--s-4)}
+.ag-parada::before{content:'';position:absolute;left:calc(-1 * var(--s-4) - 7px);top:18px;width:12px;height:12px;border-radius:50%;background:var(--bg);border:2px solid var(--lila-2)}
+.ag-parada--actividad::before{border-color:var(--amber)}.ag-parada--comida::before,.ag-parada--cena::before{border-color:var(--st-caida)}
+.ag-parada--noche,.ag-parada--checkout,.ag-parada--libre{background:transparent}
+.ag-hora{margin:0 0 var(--s-1);font-size:.78rem;text-transform:uppercase;letter-spacing:.05em;color:var(--text-dim)}
+.ag-hora time{font-weight:700;color:var(--text);margin-right:6px}
+.ag-info{display:flex;flex-direction:column;gap:var(--s-2)}.ag-info p{margin:0}.ag-info h4{margin:0;font-size:1.05rem}
+.ag-breve{margin:0;font-weight:600}
+.ag-precio{display:flex;flex-wrap:wrap;align-items:center;gap:6px;font-weight:600}
+.precio-tag{font-size:.66rem;text-transform:uppercase;letter-spacing:.05em;font-weight:600;color:var(--lila-soft);border:1px dashed var(--lila);padding:1px 7px;border-radius:99px;white-space:normal}
+.ag-reserva{font-size:.85rem;background:rgba(240,179,90,.1);border-left:3px solid var(--amber);padding:6px 10px;border-radius:0 8px 8px 0}
+.ag-reserva--no{background:rgba(139,211,168,.08);border-left-color:var(--ok)}
+.ag-total{background:var(--bg-2);border:1.5px dashed var(--lila);border-radius:var(--r-lg);padding:var(--s-4);display:flex;flex-direction:column;gap:var(--s-3)}
+.ag-total-cab{display:flex;flex-wrap:wrap;gap:var(--s-2);align-items:center;justify-content:space-between}.ag-total-cab h2{font-size:1.4rem}
+.ag-desglose{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums}
+.ag-desglose th,.ag-desglose td{padding:8px 0;border-bottom:1px solid var(--line);vertical-align:top}
+.ag-desglose th{text-align:left;font-weight:500}.ag-desglose th small{display:block;color:var(--text-faint);font-size:.75rem;font-weight:400}
+.ag-desglose td{text-align:right;white-space:nowrap;padding-left:var(--s-3)}
+.ag-sub th,.ag-sub td{font-weight:600}
+.ag-tot th,.ag-tot td{font-family:var(--font-serif);font-size:1.35rem;font-weight:600;color:var(--amber);border-bottom:none;padding-top:var(--s-3)}
+.ag-resumen{padding-left:20px}.ag-resumen li{margin-bottom:4px}
+@media (min-width:768px){.ag-form{grid-template-columns:minmax(0,1fr) auto auto;column-gap:var(--s-5);align-items:start;padding:var(--s-5)}}

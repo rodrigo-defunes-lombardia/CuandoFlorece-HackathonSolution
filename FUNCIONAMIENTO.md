@@ -54,7 +54,8 @@ hackathon/
 │   │   └── destinos.json      salida del pipeline (la lee la web)
 │   └── src/
 │       ├── main.tsx · App.tsx · vite-env.d.ts
-│       ├── data/              anuncios.ts (datos de la página de anuncios)
+│       ├── config/            agencia.ts (margen de la agencia)
+│       ├── data/              locales.ts (compartido) · anuncios.ts · agencia.ts
 │       ├── lib/               lógica sin interfaz (datos, cálculos, APIs)
 │       ├── components/        piezas de la interfaz
 │       └── styles/            tokens.css · app.css
@@ -126,14 +127,22 @@ Se ejecuta con `python pipeline/build.py` y escribe `web/public/data/destinos.js
 | Archivo | Qué hace |
 |---|---|
 | `main.tsx` | Importa los estilos y monta `<App />` dentro de `StrictMode`. |
-| `App.tsx` | Coordina toda la web (sección 2). Hace también de navegación mínima sin librería: `/` es el mapa y `/anuncios` la página de anuncios (menú «Mapa / Anuncios» en la cabecera, con `history.pushState`). En el mapa: carga el JSON, fija «hoy», refresca el tiempo cada 30 min, aplica la predicción en vivo, lee las observaciones, calcula ajustes y estados y decide qué se ve: lista de destinos o ficha, y qué formulario está abierto. |
+| `App.tsx` | Coordina toda la web (sección 2). Hace también de navegación mínima sin librería: `/` es el mapa, `/anuncios` la página de anuncios y `/agencia` la de agencia (menú «Mapa / Anuncios / Agencia» en la cabecera, con `history.pushState`). En el mapa: carga el JSON, fija «hoy», refresca el tiempo cada 30 min, aplica la predicción en vivo, lee las observaciones, calcula ajustes y estados y decide qué se ve: lista de destinos o ficha, y qué formulario está abierto. |
 | `vite-env.d.ts` | Tipos de Vite (por ejemplo, `import.meta.env.DEV`). |
 
 ### 4.5 bis `web/src/data/`
 
 | Archivo | Qué hace |
 |---|---|
-| `anuncios.ts` | Datos de la página de anuncios por destino: ayuntamiento con sus anuncios y 8 locales. **Reales**: nombres, localidad y valoración (`puntuacion`, `escala`, `fuente`, `url`, `fechaConsulta`, `opiniones`), consultadas en Booking.com y Google Maps el 21/10/2026. **Ficticios**: promociones, eventos, fechas y textos. Incluye `enlacesDe` (Booking + Google Maps para alojamientos; Google Maps + TripAdvisor para restaurantes) y `aCinco` (escala convertida a 5 estrellas). |
+| `locales.ts` | **Compartido** por anuncios y agencia: ayuntamientos, alojamientos (6/6/5) y restaurantes (8 por destino) **reales**, con tipo, localidad, descripción breve, categoría de cocina según Google Maps y valoración (`puntuacion`, `escala`, `fuente`, `url`, `fechaConsulta`, `opiniones`) consultada el 21/10/2026. También los constructores de enlaces (Booking, Google Maps, TripAdvisor) y `aCinco`. |
+| `anuncios.ts` | Contenido **ficticio** de la página de anuncios (anuncios de cada ayuntamiento y promociones por id de local), unido a los locales reales de `locales.ts`. |
+| `agencia.ts` | Actividades **reales** por destino (9 por destino, con tipo, duración, descripción, si requieren reserva o permiso y dónde, y franja de mañana o tarde) y precios **ficticios** de alojamientos (por habitación y noche) y restaurantes (por persona). |
+
+### 4.5 ter `web/src/config/`
+
+| Archivo | Qué hace |
+|---|---|
+| `agencia.ts` | `AGENCY_MARGIN = 0.12`: margen de la agencia. Único sitio donde se cambia. |
 
 ### 4.6 `web/src/lib/` — lógica (sin interfaz)
 
@@ -146,6 +155,7 @@ Se ejecuta con `python pipeline/build.py` y escribe `web/public/data/destinos.js
 | `tiempo.ts` | Cliente de Open-Meteo. Usa la API de previsión (`past_days` + 16 días) y, para fechas de hace más de 92 días, la de archivo. Caché de 30 min en `localStorage`. Si falla la red: caché → CSV (solo Tejera Negra) → «sin datos». `fusionar` une el CSV con los datos en vivo; si se solapan, gana Open-Meteo. |
 | `openmeteo.ts` | `anomaliaSevilla`: compara el calor acumulado del año en curso (enero–abril, API de archivo) con la media histórica y dice si la temporada va adelantada o retrasada. Si no hay red, usa el último año del CSV. Se muestra en la ficha de Sevilla. |
 | `repos.ts` | Acceso a los datos de la comunidad. Hoy guarda en `localStorage` (`cf.obs`, `cf.alertas`); para producción basta con implementar las mismas interfaces contra una API. Incluye las 5 observaciones `SEMILLAS` de ejemplo, con fechas relativas a «hoy». |
+| `agencia.ts` | Lógica pura de la agencia. `generarRuta(destino, días, personas, alojamiento?)`: arma el itinerario día a día con plantillas fijas (1 día: mañana, comida, tarde; día 1: check-in, tarde, cena; intermedios: mañana, comida, tarde, cena, noche; último: check-out, mañana, comida), sin repetir actividades ni restaurantes (si faltan, deja «tiempo libre» y avisa). Restaurantes por mejor valoración; alojamiento por defecto = mejor valoración verificada entre los de precio medio o inferior (`elegirAlojamiento`). `calcularPrecio(ruta, personas, margen)`: todo en céntimos enteros (alojamiento = noches × habitaciones × precio medio; habitaciones = personas / 2 redondeado arriba), subtotal, margen y total que cuadran. Pruebas en `agencia.test.ts` (Vitest). |
 | `colores.ts` | Traduce cada fase a su color (variables CSS): rampa lila/ámbar para flores y verde → ocre → cobre para hayedos. |
 
 ### 4.7 `web/src/components/` — interfaz
@@ -154,6 +164,8 @@ Se ejecuta con `python pipeline/build.py` y escribe `web/public/data/destinos.js
 |---|---|
 | `MapView.tsx` | Mapa MapLibre. Fondo de **satélite** (Esri World Imagery) con carreteras, límites y ciudades de OpenFreeMap encima. Se atenúa en **modo oscuro** según la preferencia del navegador y cambia en el momento si el usuario la cambia. Cada destino es una **flor dibujada en el propio mapa** (capa de símbolos), con su centro exacto en la coordenada, así que no se desplaza al hacer zoom. Las etiquetas se colocan donde no chocan, y el seleccionado lleva halo y queda encima. Al elegir un destino, el mapa vuela hasta él respetando el panel. Incluye una lista oculta de botones para teclado y lector de pantalla, y un aviso si no cargan las teselas. |
 | `Anuncios.tsx` | Página `/anuncios` (demo del modelo de negocio): aviso fijo de demostración, banner «¿Eres un ayuntamiento?» (aún sin destino), selector de destino guardado en la URL (`?destino=`), bloque del ayuntamiento y rejilla de locales con su promoción ficticia, la valoración real con fuente y los enlaces externos. Lo publicitario va con borde discontinuo y las etiquetas «Anuncio» y «Ejemplo · ficticio». |
+| `Agencia.tsx` | Página `/agencia`: aviso de simulación, formulario (destino, días 1–5 y personas 1–6 como botones táctiles) guardado en la URL, mejor ventana para ir (rango y confianza del modelo de la app, o cuándo vuelve la temporada), selector de alojamiento, ruta día a día con tarjetas por parada, precio final con desglose y línea del margen, y diálogo «Solicitar esta ruta (demo)» con opción de copiar el enlace. |
+| `Valoracion.tsx` | Estrellas accesibles (relleno parcial, `aria-label`) con la fuente, la puntuación original, la escala y la fecha enlazadas; sin dato, «Valoración no disponible». La usan anuncios y agencia. |
 | `Simulador.tsx` | La **máquina del tiempo** (arriba a la izquierda, semitransparente): botones Hoy / +7 / +14 días, desplegable «Saltar a…» con fechas clave de 2027 y un deslizador de 0 a 365 días. |
 | `Ficha.tsx` | Detalle de un destino, en el orden que necesita el turista: **¿está en flor?** (fase y %), **¿cuándo ir?** (ventana y `LineaTiempo`, aviso de predicción en vivo, ajuste de la comunidad y aviso «Pendiente de revisar»), **¿cuánto confiar?** (nivel, años, fotos y verificaciones), **Evolución** (gráfico propio de cada sitio: color del hayedo, cosecha de Brihuega, grados-día de Sevilla con tabla de bases y comprobación), **Tiempo**, acciones (Avísame / Yo estuve aquí) y partners de **ejemplo**. |
 | `LineaTiempo.tsx` | Bandas de fechas: amplia (clara), probable (intensa), marca central y línea de la fecha consultada. Nunca muestra una fecha suelta. |
@@ -179,6 +191,8 @@ Se ejecuta con `python pipeline/build.py` y escribe `web/public/data/destinos.js
 | `e2e.py` | Recorrido completo con Playwright: carga, fichas, máquina del tiempo, observación cerca y lejos, alerta, consola sin errores y capturas en 3 tamaños. | `python tests/e2e.py` con `npm run dev` en marcha |
 | `precision_mapa.py` | Que el punto central de cada flor cae exactamente en su coordenada a varios zooms, en móvil y escritorio. | `python tests/precision_mapa.py` |
 | `anuncios.py` | Página de anuncios: menú, selector y URL, enlaces externos (abre una búsqueda de Booking y otra de Google Maps), fuente de cada valoración, banner sin navegación, enlace desde la ficha, desbordes y capturas en 3 tamaños. | `python tests/anuncios.py` |
+| `agencia.py` | Página de agencia: menú, cambios de destino/días/personas/alojamiento en ruta, precio y URL, desglose que cuadra con el margen, enlaces (abre Booking y Google Maps), valoraciones con fuente, etiqueta de precio ficticio en todos los precios, diálogo y capturas en 3 tamaños. | `python tests/agencia.py` |
+| `web/src/lib/agencia.test.ts` | Pruebas unitarias (Vitest) de `generarRuta` y `calcularPrecio` para todos los destinos, de 1 a 5 días y de 1 a 6 personas. | `cd web && npm test` |
 | `vivo.mts` | Que la predicción en vivo reproduce el pipeline sin datos y que, con datos reales de 2025 (excluido de los análogos), se acerca a la fecha real. | `node tests/vivo.mts` |
 
 ### 4.10 `.claude/skills/`
