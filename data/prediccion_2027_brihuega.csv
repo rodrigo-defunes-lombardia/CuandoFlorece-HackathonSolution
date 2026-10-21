@@ -1,0 +1,5 @@
+hito,fecha_emision,central,probable_desde,probable_hasta,amplia_desde,amplia_hasta,anios,version_modelo
+plena_flor,2026-08-12,2027-07-05,2027-07-01,2027-07-08,2027-06-25,2027-07-16,10,v0-climatologia
+cosecha_10,2026-08-12,2027-07-29,2027-07-25,2027-08-01,2027-07-10,2027-08-08,10,v0-climatologia
+cosecha_50,2026-08-12,2027-08-15,2027-08-12,2027-08-19,2027-07-30,2027-09-10,10,v0-climatologia
+cosecha_final,2026-08-12,2027-08-20,2027-08-16,2027-08-24,2027-08-07,2027-09-12,10,v0-climatologia
