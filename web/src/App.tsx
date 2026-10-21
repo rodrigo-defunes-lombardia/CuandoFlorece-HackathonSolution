@@ -11,14 +11,12 @@ import { Simulador } from './components/Simulador'
 import { Ficha } from './components/Ficha'
 import { FormObs } from './components/FormObs'
 import { FormAlerta } from './components/FormAlerta'
-import { Negocio } from './components/Negocio'
 import { cargarTiempo, fusionar, type DiaTiempo, type Tiempo } from './lib/tiempo'
 import { aplicarVivo, type Vivo } from './lib/vivo'
 
 export default function App() {
   const [datos, setDatos] = useState<Datos | null>(null)
   const [fallo, setFallo] = useState('')
-  const [vista, setVista] = useState<'mapa' | 'negocio'>(location.hash === '#negocio' ? 'negocio' : 'mapa')
   const [sel, setSel] = useState<string | null>(null)
   const [dias, setDias] = useState(0)
   const [obs, setObs] = useState<Observacion[]>([])
@@ -56,7 +54,6 @@ export default function App() {
     setObs([...SEMILLAS(hoy), ...propias])
   }, [hoy])
   useEffect(() => { recargar() }, [recargar])
-  useEffect(() => { const h = () => setVista(location.hash === '#negocio' ? 'negocio' : 'mapa'); window.addEventListener('hashchange', h); return () => window.removeEventListener('hashchange', h) }, [])
 
   const fecha = sumaDias(hoy, dias)
   const ajustes = useMemo(() => Object.fromEntries(destinos.map(d => [d.id, calcularAjuste(d, obs, hoy)])) as Record<string, Ajuste>, [destinos, obs, hoy])
@@ -68,14 +65,9 @@ export default function App() {
     <div className="app">
       <a className="salto" href="#contenido">Saltar al contenido</a>
       <header className="barra">
-        <a className="marca-app" href="#" onClick={() => { setVista('mapa'); setSel(null) }}><Flor size={28} className="logo" /><span>Cuándo Florece</span></a>
-        <nav aria-label="Principal">
-          <a href="#" className={vista === 'mapa' ? 'on' : ''} aria-current={vista === 'mapa' ? 'page' : undefined} onClick={() => { location.hash = ''; setVista('mapa') }}>Mapa</a>
-          <a href="#negocio" className={vista === 'negocio' ? 'on' : ''} aria-current={vista === 'negocio' ? 'page' : undefined}>Negocio</a>
-        </nav>
+        <a className="marca-app" href="#" onClick={() => setSel(null)}><Flor size={28} className="logo" /><span>Cuándo Florece</span></a>
       </header>
 
-      {vista === 'negocio' ? <Negocio /> : (
         <main className="vista" id="contenido">
           {fallo && <p className="err pagina">{fallo}</p>}
           {!datos && !fallo && <div className="cargando" role="status"><Flor size={56} className="gira" /> Cargando el mapa vivo…</div>}
@@ -112,7 +104,6 @@ export default function App() {
             {d && modal === 'alerta' && <FormAlerta destino={d} onClose={() => setModal(null)} />}
           </>)}
         </main>
-      )}
     </div>
   )
 }

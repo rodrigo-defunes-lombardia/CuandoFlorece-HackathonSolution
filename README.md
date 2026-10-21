@@ -1,6 +1,6 @@
 # Cuándo Florece · el mapa vivo de la floración en España
 
-Prototipo para el reto de Greenia (Hackathon EPS UFV, 20–22 oct 2026). Mapa con 3 destinos, estado de floración con margen de confianza, simulador de fecha, verificación ciudadana, alertas simuladas y página de negocio.
+Prototipo para el reto de Greenia (Hackathon EPS UFV, 20–22 oct 2026). Mapa con 3 destinos, estado de floración con margen de confianza, simulador de fecha, verificación ciudadana y alertas simuladas. El modelo de negocio está en [`NEGOCIO.md`](NEGOCIO.md).
 
 ## Arrancar desde cero
 ```bash
