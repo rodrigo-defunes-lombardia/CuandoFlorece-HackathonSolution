@@ -15,7 +15,7 @@ import { Negocio } from './components/Negocio'
 import { Modal } from './components/Modal'
 
 /** URL oficial de Greenia: no la conocemos con certeza, se rellena antes de la demo. */
-const URL_GREENIA = ''
+const URL_GREENIA = 'https://cuandoflorece.es/es'
 
 export default function App() {
   const [datos, setDatos] = useState<Datos | null>(null)
@@ -92,8 +92,8 @@ export default function App() {
               <Modal titulo="Vive la experiencia AR" onClose={() => setModal(null)}>
                 <p className="banner-sim">Simulado · esto no abre ninguna experiencia real.</p>
                 <p>Aquí enlazaríamos con las gafas de realidad aumentada de Greenia para ver {d.nombre} en su mejor momento antes de ir, o superponer la floración del año pasado.</p>
-                <p className="nota">Enlace a Greenia: pendiente de configurar (<code>URL_GREENIA</code> en <code>App.tsx</code>).</p>
-                {URL_GREENIA && <a className="btn btn--primario" href={URL_GREENIA} target="_blank" rel="noreferrer">Conocer Greenia</a>}
+                <p className="nota">Enlace a Greenia (configurable en <code>URL_GREENIA</code>, <code>App.tsx</code>).</p>
+                {URL_GREENIA && <a className="btn btn--primario" href={URL_GREENIA} target="_blank" rel="noreferrer">Conocer Greenia (se abre en otra pestaña)</a>}
               </Modal>
             )}
           </>)}
