@@ -8,15 +8,19 @@ import { Badge } from './Badge'
 import { Flor } from './Flor'
 import { Grafico, type Serie } from './Grafico'
 import { LineaTiempo } from './LineaTiempo'
+import { Tiempo } from './Tiempo'
+import type { Tiempo as TiempoT } from '../lib/tiempo'
+import type { Vivo } from '../lib/vivo'
 
 interface Props {
   d: Destino; fecha: string; hoy: string; ajuste: Ajuste; obs: Observacion[]
+  tiempo?: TiempoT; vivo?: Vivo; cargandoTiempo: boolean; onRefrescar: () => void
   onVolver: () => void; onAlerta: () => void; onObs: () => void; onAR: () => void
 }
 const NIVEL = { alta: 'Alta', media: 'Media', baja: 'Baja',  } as const
 const fmtF = (x: number) => corta(new Date(x).toISOString().slice(0, 10))
 
-export function Ficha({ d, fecha, hoy, ajuste, obs, onVolver, onAlerta, onObs, onAR }: Props) {
+export function Ficha({ d, fecha, hoy, ajuste, obs, tiempo, vivo, cargandoTiempo, onRefrescar, onVolver, onAlerta, onObs, onAR }: Props) {
   const e = useMemo(() => estadoEn(d, fecha, ajuste), [d, fecha, ajuste])
   const color = colorFase(d.tipo, e.faseId)
   const fases = d.tipo === 'hayedo' ? [{ id: 'previa', etiqueta: 'Verde' }, ...d.fases] : d.fases
@@ -59,6 +63,7 @@ export function Ficha({ d, fecha, hoy, ajuste, obs, onVolver, onAlerta, onObs, o
         <p className="ventana"><b>{rango([e.ventana.desde, e.ventana.hasta])}</b> <span className="dim">ventana óptima central</span></p>
         <p className="dim">Probable: {rango(e.ventana.probable)} · Amplio: {rango(e.ventana.amplia)}{e.anioExtra ? ' · calendario del año siguiente' : ''}</p>
         <LineaTiempo estado={e} fecha={fecha} hitosMostrar={hitosClave} />
+        {vivo?.texto && <p className="vivo" role="status">{vivo.activo ? <Badge origen="Open-Meteo" /> : null} {vivo.texto}</p>}
         {ajuste.desplazamiento !== 0 && <p className="comunidad">La comunidad ha movido la predicción <b>{Math.abs(ajuste.desplazamiento).toFixed(1)} días {ajuste.desplazamiento < 0 ? 'antes' : 'después'}</b> y estrechado el margen un {Math.round((1 - ajuste.factor) * 100)} %.</p>}
         {d.hitos.some(h => h.revisar) && <p className="aviso" role="note"><b>Pendiente de revisar:</b> el satélite marcó el inicio el {corta(d.hitos[0].detectado_2026?.fecha ?? '')} (confirmado {corta(d.hitos[0].detectado_2026?.confirmado ?? '')}), semanas antes que en cualquier otoño anterior. No lo usamos para mover el calendario hasta revisarlo.</p>}
       </section>
@@ -79,6 +84,12 @@ export function Ficha({ d, fecha, hoy, ajuste, obs, onVolver, onAlerta, onObs, o
       <section className="bloque" aria-label="Evolución">
         <h3>Evolución</h3>
         <Evolucion d={d} fecha={fecha} hoy={hoy} anom={anom} />
+      </section>
+
+      <section className="bloque" aria-label="Tiempo">
+        <h3>Tiempo</h3>
+        <Tiempo d={d} t={tiempo} hoy={hoy} cargando={cargandoTiempo} onRefrescar={onRefrescar}
+          nota={d.id === 'brihuega' ? 'El modelo de la lavanda (climatología v0) aún no usa el tiempo: esto es solo contexto.' : d.id === 'tejera_negra' ? 'Une el CSV del proyecto con datos en vivo. No modifica el calendario del hayedo.' : ''} />
       </section>
 
       {/* Acciones */}
@@ -107,18 +118,11 @@ function Evolucion({ d, fecha, hoy, anom }: { d: Destino; fecha: string; hoy: st
     const c = d.serie.color
     const col: Serie = { nombre: 'Color (mediana de 7 zonas)', color: 'var(--hy-avanzado)', puntos: c.map(p => [x(p.fecha), p.color]), banda: c.map(p => [p.p25, p.p75]) }
     const hoja: Serie = { nombre: 'Hoja perdida', color: 'var(--hy-caida)', punteada: true, puntos: c.map(p => [x(p.fecha), p.hoja_perdida]) }
-    const cl = d.serie.clima.filter(p => p.tmax !== null)
-    const ultimo = cl[cl.length - 1]
     return (<>
       <Badge origen="Satélite" />
       <Grafico titulo="Índice de color del hayedo" descripcion={`Del ${corta(c[0].fecha)} al ${corta(c[c.length - 1].fecha)}; banda entre percentiles 25 y 75 de las zonas.`}
         series={[col, hoja]} xFmt={fmtF} marcas={fecha <= '2026-12-31' ? marcaHoy : []} />
       <p className="nota">Índice de color: estimación desde el espacio, no una medida. Última imagen: {larga(d.serie.color_hasta)}. La banda es el rango entre el 25 % y el 75 % de las zonas.</p>
-      <h4>Clima reciente <Badge origen="Calendario histórico" /></h4>
-      <Grafico titulo="Temperaturas en Tejera Negra" descripcion={`Máxima y mínima diarias hasta el ${corta(d.serie.clima_hasta)}.`}
-        series={[{ nombre: 'Máxima °C', color: 'var(--amber)', puntos: cl.map(p => [x(p.fecha), p.tmax as number]) }, { nombre: 'Mínima °C', color: 'var(--lila-2)', puntos: cl.map(p => [x(p.fecha), p.tmin as number]) }]}
-        xFmt={fmtF} yFmt={v => `${Math.round(v)}°`} />
-      {ultimo && <p className="dim">Último dato del {corta(ultimo.fecha)}: máx {ultimo.tmax} °C · mín {ultimo.tmin} °C · lluvia {ultimo.lluvia ?? '—'} mm. {d.serie.clima.length - cl.length} días sin dato.</p>}
     </>)
   }
   if (d.id === 'brihuega' && d.historia) {

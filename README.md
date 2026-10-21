@@ -26,10 +26,10 @@ Los CSV viven en `data/` (los 12 están presentes).
 | Brihuega: predicción 2027, cosecha 2026 | **Real** (climatología v0, 10 temporadas; cosechas por satélite ±3 d) |
 | Brihuega: "primeras flores" y "floración activa" | **Supuesto** marcado (derivados del margen de plena flor) |
 | Azahar de Sevilla: modelo de grados-día con `meteo_sevilla.csv` | **Real**, con calibración débil (2 años) |
-| Open-Meteo en vivo (anomalía de la temporada 2026) | **Real**, con fallback automático al CSV |
+| Open-Meteo en vivo: tiempo de los 3 destinos, anomalía de 2026 y predicción de Sevilla en temporada | **Real**, con respaldo a caché local y al CSV |
 | Observaciones semilla (5) | **Demo**, marcadas "de ejemplo" |
 | Alertas, botón AR, partners | **Simulado** ("Ejemplo" / "Demo") |
-| Fecha "hoy" | Fijada a 21 oct 2026 en el pipeline (`HOY`), para que la demo sea reproducible |
+| Fecha "hoy" | La del dispositivo (nunca anterior al 21 oct 2026, fecha de los datos): las vistas avanzan solas |
 
 ## Modelo de Sevilla (grados-día)
 - Se acumula `max(0, (Tmáx+Tmín)/2 − base)` desde el 1 de enero.
@@ -38,6 +38,15 @@ Los CSV viven en `data/` (los 12 están presentes).
 - **Rangos**: para cada uno de los 14 años de temperatura se busca el día que se alcanza el umbral. "Probable" = percentiles 25–75; "amplio" = percentil 10 del umbral bajo y 90 del alto (incluye la incertidumbre de calibración).
 - **Comprobación** dejando un año fuera: −1,5 y +2,0 días (muestra muy pequeña: no es una garantía).
 - **Hallazgo**: la mediana climática del pico (31 mar) es ~10 días posterior a los dos años observados (2022–23, cálidos).
+
+## Datos en vivo (Open-Meteo)
+Módulo `web/src/lib/tiempo.ts`: la API de previsión (`past_days` + 16 días de previsión) y, para el tramo anterior a 92 días, la API de archivo. Gratis y sin clave.
+- **Actualización automática**: al abrir la app y cada 30 min (botón "Actualizar" para forzarla). Caché local de 30 min.
+- **Respaldo**: red → caché local → CSV del proyecto (solo Tejera Negra lo trae) → aviso "sin datos". La etiqueta dice siempre de dónde viene el dato.
+- **Tejera Negra**: el gráfico une `otono_clima_tejera_negra.csv` con los datos en vivo y la previsión. No modifica el calendario (no hay modelo de color basado en temperatura).
+- **Brihuega**: tiempo reciente y previsión como contexto. No modifica la predicción (climatología v0).
+- **Azahar de Sevilla**: desde el 1 de enero de la temporada (2027), `web/src/lib/vivo.ts` recalcula los hitos con el método de **años análogos**: calor real acumulado (observado + previsión) hasta hoy, y para el resto del año el calor diario de cada uno de los 14 años históricos. Mismos percentiles que el pipeline. Antes del 1 de enero muestra la climatología e indica por qué.
+- **Prueba** (`node tests/vivo.mts`): sin datos en vivo reproduce exactamente el pipeline. Con 2025 fuera de los análogos y 60 días reales de 2025, el pico predicho cae 9 días antes del real; con 80 días, a 1 día.
 
 ## Cómo afecta la comunidad a la predicción (primer enfoque)
 Cada observación válida (a ≤ 10 km, con foto y estado) se traduce en un desplazamiento: 0 si el estado observado cabe en lo previsto para ese día; si se ve antes (o después) de lo previsto, la diferencia en días. Se combinan con pesos que decaen a la mitad cada 7 días (ventana de 21):
@@ -58,7 +67,7 @@ Constantes en `web/src/lib/estado.ts` (`CIUDADANA`). No está validado con datos
 
 ## Hacia producción (que se sostenga solo)
 1. **Sentinel-2** automático (STAC/Planetary Computer) → índices por parcela cada pasada de 5 días.
-2. **AEMET / Open-Meteo** diario → acumulación térmica y previsión a 15 días con alertas reales.
+2. Mover la descarga de Open-Meteo a un proceso programado en servidor (hoy la hace el navegador) y añadir AEMET; enviar alertas reales con la previsión.
 3. **Backend** para observaciones (API + almacenamiento de fotos + moderación y EXIF real de GPS) y alertas por email/push.
 4. Reentrenar y publicar el acierto de cada predicción pasada (credibilidad).
 5. Un destino nuevo = una fila de datos + calendario.

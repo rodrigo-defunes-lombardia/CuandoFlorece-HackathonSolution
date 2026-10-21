@@ -13,6 +13,7 @@ export interface ModeloSevilla {
   backtest_loo: { anio: number; observado_doy: number; predicho_doy: number; error_dias: number }[]
   por_anio: Record<string, { doy_pico_ini: number | null; gdd_doy_75: number }>
   mediana_pico_ini_doy: number; serie_gdd: [number, number, number, number][]
+  umbrales_lo: Record<string, number>; umbrales_hi: Record<string, number>; gd_diario: Record<string, number[]>
   meteo_hasta: string; observaciones: { fecha: string; fuente: string; calidad: string }[]
 }
 export interface Destino {

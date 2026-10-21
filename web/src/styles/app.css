@@ -137,3 +137,8 @@ fieldset{border:0;padding:0;margin:0 0 var(--s-3)}legend{font-weight:600;margin-
   .sim{padding:var(--s-2) var(--s-3)}.sim-presets{margin:6px 0;flex-wrap:nowrap;gap:4px}.sim-presets .chip{padding:6px 10px;min-height:36px;font-size:.78rem;white-space:nowrap}
   .chip--sel{max-width:110px}.sim-rango{height:22px}
 }
+
+.badge--om{border-color:#7FD0C4}
+.tiempo-cab{display:flex;justify-content:space-between;align-items:center;gap:var(--s-2)}
+.tiempo-res{font-size:.85rem}.btn:disabled{opacity:.6;cursor:wait}
+.vivo{font-size:.85rem;background:rgba(127,208,196,.1);border-left:3px solid #7FD0C4;padding:6px 10px;border-radius:0 8px 8px 0}

@@ -153,13 +153,17 @@ def modelo_sevilla():
                                 "7–13 °C y se eligió la que hace más estable el umbral entre los años observados (menor CV). "
                                 "Con solo 2 años, la elección es orientativa."),
         "bases_probadas": tabla,
-        "umbral_pico": round(float(b), 1), "umbrales": {k: round(float(umbrales_hito(k, 'med')), 1) for k in FRACCIONES},
+        "umbral_pico": round(float(b), 1), "umbrales": {k: round(float(umbrales_hito(k, "med")), 4) for k in FRACCIONES},
         "anios_calibracion": [int(x) for x in feno.anio],
         "n_obs": int(feno.n_obs.sum()), "obs_individuales": len(obs),
         "anios_clima": [int(x) for x in anios_meteo],
         "backtest_loo": backtest,
         "por_anio": por_anio_gdd_actual, "mediana_pico_ini_doy": mediana_pico_doy,
         "umbral_pico_ini": round(float(umbrales_hito('pico_ini', 'med')), 1),
+        # Para actualizar la predicción en vivo desde el navegador (lib/vivo.ts): umbrales y calor diario histórico
+        "umbrales_lo": {k: round(float(umbrales_hito(k, "lo")), 4) for k in FRACCIONES},
+        "umbrales_hi": {k: round(float(umbrales_hito(k, "hi")), 4) for k in FRACCIONES},
+        "gd_diario": {int(y): [round(float(v), 3) for v in m[(m.anio == y) & (m.doy <= 170)].sort_values("doy").gd] for y in anios_meteo},
         "serie_gdd": serie_gdd,
         "meteo_hasta": iso(meteo.fecha.max().date()),
         "observaciones": [{"fecha": iso(r.fecha.date()), "fuente": r.fuente, "calidad": r.calidad} for r in obs.itertuples()],
