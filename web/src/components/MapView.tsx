@@ -37,7 +37,7 @@ export function MapView({ destinos, estados, seleccionado, onSeleccionar }: Prop
 
   useEffect(() => {
     if (!cont.current) return
-    const m = new maplibregl.Map({ container: cont.current, style: ESTILO, center: [-3.9, 39.9], zoom: 5.1, minZoom: 4, attributionControl: { compact: true } })
+    const m = new maplibregl.Map({ container: cont.current, style: ESTILO, center: [-3.9, 39.9], zoom: 5.1, minZoom: 3, attributionControl: { compact: true } })
     mapa.current = m
     m.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'bottom-right')
     m.on('error', e => { if (String(e.error?.message || '').match(/fetch|Failed|NetworkError|tiles/i)) setAviso('No se pudo cargar el mapa base (sin conexión). Los destinos siguen disponibles.') })
@@ -45,13 +45,14 @@ export function MapView({ destinos, estados, seleccionado, onSeleccionar }: Prop
       const el = document.createElement('button')
       el.type = 'button'; el.className = 'marca'
       el.addEventListener('click', () => onSeleccionar(d.id))
-      new maplibregl.Marker({ element: el, anchor: 'bottom' }).setLngLat([d.lon, d.lat]).addTo(m)
+      // Brihuega queda a ~40 km al sur de Tejera Negra: su ficha se dibuja por debajo del punto para no solaparse
+      new maplibregl.Marker({ element: el, anchor: d.id === 'brihuega' ? 'top' : 'bottom' }).setLngLat([d.lon, d.lat]).addTo(m)
       marcas.current[d.id] = el
     }
     const ancho = window.innerWidth > 859
     const b = new maplibregl.LngLatBounds()
     destinos.forEach(d => b.extend([d.lon, d.lat]))
-    m.fitBounds(b, { padding: ancho ? { top: 90, bottom: 200, left: 480, right: 80 } : { top: 170, bottom: window.innerHeight * 0.5, left: 40, right: 40 }, duration: 0, maxZoom: 6.5 })
+    m.fitBounds(b, { padding: ancho ? { top: 90, bottom: 250, left: 480, right: 80 } : { top: 212, bottom: cont.current.clientHeight * 0.48 + 12, left: 50, right: 50 }, duration: 0, maxZoom: 6.5 })
     return () => { m.remove(); mapa.current = null }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
@@ -61,7 +62,9 @@ export function MapView({ destinos, estados, seleccionado, onSeleccionar }: Prop
       const el = marcas.current[d.id], e = estados[d.id]
       if (!el || !e) continue
       el.style.setProperty('--c', colorFase(d.tipo, e.faseId))
-      el.className = `marca${seleccionado === d.id ? ' marca--sel' : ''}${e.enTemporada ? '' : ' marca--fuera'}`
+      // classList (no className): MapLibre añade sus propias clases de posicionamiento al marcador
+      el.classList.toggle('marca--sel', seleccionado === d.id)
+      el.classList.toggle('marca--fuera', !e.enTemporada)
       el.setAttribute('aria-label', `${d.nombre}: ${e.etiqueta}${e.enTemporada ? `, ${e.pct} %` : ''}`)
       el.innerHTML = `${florHtml(38)}<span class="marca-txt"><b>${d.nombre.replace('Hayedo de ', '')}</b><i>${e.etiqueta}${e.enTemporada ? ` · ${e.pct} %` : ''}</i></span>`
     }

@@ -37,7 +37,7 @@ p{margin:var(--s-2) 0} a{color:var(--amber)} code{background:var(--bg-3);padding
 .chip--sel{appearance:none;padding-right:14px}
 .sim-rango{width:100%;accent-color:var(--amber);height:28px;margin:0}
 /* Panel / ficha */
-.panel{position:absolute;z-index:3;background:var(--bg);overflow-y:auto;padding:var(--s-4) var(--s-4) var(--s-6);left:0;right:0;bottom:0;height:52%;border-radius:var(--r-lg) var(--r-lg) 0 0;box-shadow:0 -10px 30px rgba(10,6,16,.5);border-top:1px solid var(--line)}
+.panel{position:absolute;z-index:3;background:var(--bg);overflow-y:auto;padding:var(--s-4) var(--s-4) var(--s-6);left:0;right:0;bottom:0;height:48%;border-radius:var(--r-lg) var(--r-lg) 0 0;box-shadow:0 -10px 30px rgba(10,6,16,.5);border-top:1px solid var(--line)}
 .titulo{font-size:1.5rem;margin-bottom:var(--s-2)}
 .lista{list-style:none;margin:var(--s-4) 0;padding:0;display:grid;gap:var(--s-3)}
 .tarjeta{all:unset;box-sizing:border-box;display:grid;grid-template-columns:auto 1fr;gap:var(--s-3);width:100%;background:var(--bg-2);border:1px solid var(--line);border-left:5px solid var(--c);border-radius:var(--r-md);padding:var(--s-3);cursor:pointer;transition:background .2s,border-color .4s}
