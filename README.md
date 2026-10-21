@@ -14,7 +14,7 @@ Los CSV viven en `data/` (los 12 están presentes).
 ## Por qué esta tecnología
 1. **Vite + React + TypeScript**: arranque instantáneo, tipos que evitan errores con datos de muchos formatos, y despliegue como sitio estático.
 2. **Pipeline Python/pandas aparte**: el análisis (grados-día, percentiles) se queda en el lenguaje de los datos y escribe un JSON; la web no calcula modelos.
-3. **MapLibre + OpenFreeMap**: mapa vectorial sin API key ni coste, con estilo oscuro propio.
+3. **MapLibre + Esri World Imagery + OpenFreeMap**: vista satélite sin API key, con nombres y límites vectoriales encima; clara u oscura según la preferencia del navegador.
 4. **Sin backend**: la comunidad y las alertas usan localStorage tras una interfaz (`web/src/lib/repos.ts`) que se sustituye por una API sin tocar la UI.
 5. **CSS propio con tokens** (`styles/tokens.css`): identidad visual sin librerías genéricas.
 
@@ -63,6 +63,8 @@ Constantes en `web/src/lib/estado.ts` (`CIUDADANA`). No está validado con datos
 - `referencia_fechas.csv` no trae percentiles: el rango "probable" de los calendarios es mediana ± ¼ del rango.
 - `meteo_sevilla.csv` termina el 31-12-2025; los días fuera de temporada muestran "Fuera de temporada" y la próxima ventana.
 - La comunidad vive en el navegador: no se comparte entre dispositivos.
+- La imagen satelital es Esri World Imagery, de uso libre con atribución para prototipos; en producción hace falta una cuenta de ArcGIS o pasar a imágenes Sentinel-2 sin nubes (EOX), que encajan con los datos del proyecto.
+- Sin conexión no se cargan ni la imagen satelital ni los nombres de las flores del mapa; la lista lateral sigue mostrando todo.
 
 ## Hacia producción (que se sostenga solo)
 1. **Sentinel-2** automático (STAC/Planetary Computer) → índices por parcela cada pasada de 5 días.

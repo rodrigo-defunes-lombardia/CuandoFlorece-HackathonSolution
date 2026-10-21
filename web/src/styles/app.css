@@ -13,7 +13,7 @@ p{margin:var(--s-2) 0} a{color:var(--amber)} code{background:var(--bg-3);padding
 .marca-app{display:flex;align-items:center;gap:var(--s-2);text-decoration:none;color:var(--text);font-family:var(--font-serif);font-size:1.25rem;font-weight:600}
 .logo{--c:var(--amber);--centro:var(--bg)}
 .vista{position:relative;flex:1;min-height:0}
-.mapa,.mapa .mapa-lienzo{position:absolute;inset:0}
+.mapa,.mapa .mapa-lienzo{position:absolute;inset:0;background:#1B2330}
 .mapa-aviso{position:absolute;left:50%;bottom:16px;transform:translateX(-50%);background:var(--bg-2);padding:8px 14px;border-radius:99px;font-size:.8rem;z-index:3;margin:0;max-width:90%}
 .maplibregl-ctrl-attrib{background:rgba(43,35,51,.8)!important} .maplibregl-ctrl-attrib a{color:var(--text-dim)!important}
 /* Puntos del mapa: se dibujan en el propio mapa (MapView). Esta lista solo da acceso por teclado y lector. */
@@ -23,7 +23,8 @@ p{margin:var(--s-2) 0} a{color:var(--amber)} code{background:var(--bg-3);padding
 .mapa-a11y .marca:focus-visible{width:auto;height:auto;clip:auto;padding:8px 14px;outline:3px solid var(--text)}
 /* Simulador */
 .flota{position:absolute;z-index:4;left:var(--s-3);right:var(--s-3);top:var(--s-3)}
-.sim{background:rgba(43,35,51,.94);backdrop-filter:blur(6px);border:1px solid var(--line);border-radius:var(--r-md);padding:var(--s-3);box-shadow:var(--shadow);max-width:430px}
+.sim{background:rgba(43,35,51,.55);-webkit-backdrop-filter:blur(10px) saturate(1.2);backdrop-filter:blur(10px) saturate(1.2);border:1px solid var(--line);border-radius:var(--r-md);padding:var(--s-3);box-shadow:0 6px 20px rgba(10,6,16,.3);max-width:430px;text-shadow:0 1px 2px rgba(0,0,0,.5)}
+.sim .chip:not(.chip--on){background:rgba(64,54,77,.55)}
 .sim-fila{display:flex;justify-content:space-between;align-items:baseline;gap:var(--s-3)}
 .sim-titulo{font-family:var(--font-serif);font-size:1rem}
 .sim-fecha{color:var(--amber);font-weight:600;font-size:.9rem}
@@ -114,7 +115,7 @@ fieldset{border:0;padding:0;margin:0 0 var(--s-3)}legend{font-weight:600;margin-
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 /* Escritorio */
 @media (min-width:860px){
-  .flota{left:480px;right:auto;top:auto;bottom:36px;width:420px}
+  .flota{left:452px;right:auto;top:var(--s-4);width:420px}
   .panel{left:var(--s-4);right:auto;top:var(--s-4);bottom:var(--s-4);width:420px;height:auto;border-radius:var(--r-lg);border:1px solid var(--line);box-shadow:var(--shadow)}
   .modal-fondo{align-items:center}.modal{border-radius:var(--r-lg)}
   .acciones{grid-template-columns:1fr}
