@@ -8,7 +8,7 @@ python3 -m venv .venv && .venv/bin/pip install pandas numpy
 .venv/bin/python pipeline/build.py      # genera web/public/data/destinos.json
 cd web && npm install && npm run dev    # http://localhost:5173
 ```
-Test de recorrido (opcional): `pip install playwright && playwright install chromium`, con la app en marcha: `python tests/e2e.py`.
+Pruebas (opcional; `pip install playwright pillow && playwright install chromium`, con la app en marcha): `python tests/e2e.py` (recorrido), `python tests/precision_mapa.py` (cada flor cae en su coordenada a varios zooms) y `node tests/vivo.mts` (predicción en vivo).
 Los CSV viven en `data/` (los 12 están presentes).
 
 ## Por qué esta tecnología

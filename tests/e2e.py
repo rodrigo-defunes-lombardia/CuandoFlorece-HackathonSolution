@@ -36,10 +36,10 @@ with sync_playwright() as p:
                 pg.screenshot(path=str(OUT / f"escritorio_ficha_{dest.split()[-1]}.png"), full_page=False)
                 pg.get_by_text("← Todos los destinos").click()
             # Simulador
-            antes = pg.locator(".marca").nth(2).get_attribute("aria-label")
+            antes = pg.locator(".marca").nth(2).inner_text()
             pg.get_by_role("combobox", name="Saltar a una fecha clave").select_option("2027-04-01")
             pg.wait_for_timeout(600)
-            despues = pg.locator(".marca").nth(2).get_attribute("aria-label")
+            despues = pg.locator(".marca").nth(2).inner_text()
             ok(antes != despues, f"simulador cambia estado: «{antes}» → «{despues}»")
             pg.screenshot(path=str(OUT / "escritorio_2_abril2027.png"))
             pg.get_by_role("button", name="Hoy", exact=True).click()

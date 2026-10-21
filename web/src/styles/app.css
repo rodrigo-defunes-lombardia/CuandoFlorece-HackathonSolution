@@ -16,15 +16,11 @@ p{margin:var(--s-2) 0} a{color:var(--amber)} code{background:var(--bg-3);padding
 .mapa,.mapa .mapa-lienzo{position:absolute;inset:0}
 .mapa-aviso{position:absolute;left:50%;bottom:16px;transform:translateX(-50%);background:var(--bg-2);padding:8px 14px;border-radius:99px;font-size:.8rem;z-index:3;margin:0;max-width:90%}
 .maplibregl-ctrl-attrib{background:rgba(43,35,51,.8)!important} .maplibregl-ctrl-attrib a{color:var(--text-dim)!important}
-/* Marcadores */
-.marca{all:unset;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:2px;--c:var(--st-fuera);transition:transform .2s}
-.marca svg{filter:drop-shadow(0 3px 5px rgba(0,0,0,.5));transition:all .4s}
-.marca svg ellipse{transition:fill .5s}
-.marca-txt{display:flex;flex-direction:column;align-items:center;background:var(--bg);border:1.5px solid var(--c);border-radius:10px;padding:2px 8px;line-height:1.2;transition:border-color .4s}
-.marca-txt b{font-size:.78rem}.marca-txt i{font-size:.7rem;font-style:normal;color:var(--text-dim)}
-.marca:hover,.marca--sel{transform:scale(1.12)} .marca--sel .marca-txt{background:var(--bg-3)}
-.marca--fuera svg{opacity:.7}
-.marca:focus-visible{outline:3px solid var(--amber)}
+/* Puntos del mapa: se dibujan en el propio mapa (MapView). Esta lista solo da acceso por teclado y lector. */
+.mapa-a11y{list-style:none;margin:0;padding:0;position:absolute;left:var(--s-3);top:var(--s-3);z-index:6}
+.mapa-a11y .marca{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0;padding:0;
+  font:inherit;font-weight:600;color:var(--amber-ink);background:var(--amber);border-radius:99px;cursor:pointer}
+.mapa-a11y .marca:focus-visible{width:auto;height:auto;clip:auto;padding:8px 14px;outline:3px solid var(--text)}
 /* Simulador */
 .flota{position:absolute;z-index:4;left:var(--s-3);right:var(--s-3);top:var(--s-3)}
 .sim{background:rgba(43,35,51,.94);backdrop-filter:blur(6px);border:1px solid var(--line);border-radius:var(--r-md);padding:var(--s-3);box-shadow:var(--shadow);max-width:430px}
