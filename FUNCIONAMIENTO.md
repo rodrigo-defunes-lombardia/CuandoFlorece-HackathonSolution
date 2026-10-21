@@ -54,6 +54,7 @@ hackathon/
 │   │   └── destinos.json      salida del pipeline (la lee la web)
 │   └── src/
 │       ├── main.tsx · App.tsx · vite-env.d.ts
+│       ├── data/              anuncios.ts (datos de la página de anuncios)
 │       ├── lib/               lógica sin interfaz (datos, cálculos, APIs)
 │       ├── components/        piezas de la interfaz
 │       └── styles/            tokens.css · app.css
@@ -125,8 +126,14 @@ Se ejecuta con `python pipeline/build.py` y escribe `web/public/data/destinos.js
 | Archivo | Qué hace |
 |---|---|
 | `main.tsx` | Importa los estilos y monta `<App />` dentro de `StrictMode`. |
-| `App.tsx` | Coordina toda la web (sección 2): carga el JSON, fija «hoy», refresca el tiempo cada 30 min, aplica la predicción en vivo, lee las observaciones, calcula ajustes y estados y decide qué se ve: lista de destinos o ficha, y qué formulario está abierto. |
+| `App.tsx` | Coordina toda la web (sección 2). Hace también de navegación mínima sin librería: `/` es el mapa y `/anuncios` la página de anuncios (menú «Mapa / Anuncios» en la cabecera, con `history.pushState`). En el mapa: carga el JSON, fija «hoy», refresca el tiempo cada 30 min, aplica la predicción en vivo, lee las observaciones, calcula ajustes y estados y decide qué se ve: lista de destinos o ficha, y qué formulario está abierto. |
 | `vite-env.d.ts` | Tipos de Vite (por ejemplo, `import.meta.env.DEV`). |
+
+### 4.5 bis `web/src/data/`
+
+| Archivo | Qué hace |
+|---|---|
+| `anuncios.ts` | Datos de la página de anuncios por destino: ayuntamiento con sus anuncios y 8 locales. **Reales**: nombres, localidad y valoración (`puntuacion`, `escala`, `fuente`, `url`, `fechaConsulta`, `opiniones`), consultadas en Booking.com y Google Maps el 21/10/2026. **Ficticios**: promociones, eventos, fechas y textos. Incluye `enlacesDe` (Booking + Google Maps para alojamientos; Google Maps + TripAdvisor para restaurantes) y `aCinco` (escala convertida a 5 estrellas). |
 
 ### 4.6 `web/src/lib/` — lógica (sin interfaz)
 
@@ -146,6 +153,7 @@ Se ejecuta con `python pipeline/build.py` y escribe `web/public/data/destinos.js
 | Archivo | Qué hace |
 |---|---|
 | `MapView.tsx` | Mapa MapLibre. Fondo de **satélite** (Esri World Imagery) con carreteras, límites y ciudades de OpenFreeMap encima. Se atenúa en **modo oscuro** según la preferencia del navegador y cambia en el momento si el usuario la cambia. Cada destino es una **flor dibujada en el propio mapa** (capa de símbolos), con su centro exacto en la coordenada, así que no se desplaza al hacer zoom. Las etiquetas se colocan donde no chocan, y el seleccionado lleva halo y queda encima. Al elegir un destino, el mapa vuela hasta él respetando el panel. Incluye una lista oculta de botones para teclado y lector de pantalla, y un aviso si no cargan las teselas. |
+| `Anuncios.tsx` | Página `/anuncios` (demo del modelo de negocio): aviso fijo de demostración, banner «¿Eres un ayuntamiento?» (aún sin destino), selector de destino guardado en la URL (`?destino=`), bloque del ayuntamiento y rejilla de locales con su promoción ficticia, la valoración real con fuente y los enlaces externos. Lo publicitario va con borde discontinuo y las etiquetas «Anuncio» y «Ejemplo · ficticio». |
 | `Simulador.tsx` | La **máquina del tiempo** (arriba a la izquierda, semitransparente): botones Hoy / +7 / +14 días, desplegable «Saltar a…» con fechas clave de 2027 y un deslizador de 0 a 365 días. |
 | `Ficha.tsx` | Detalle de un destino, en el orden que necesita el turista: **¿está en flor?** (fase y %), **¿cuándo ir?** (ventana y `LineaTiempo`, aviso de predicción en vivo, ajuste de la comunidad y aviso «Pendiente de revisar»), **¿cuánto confiar?** (nivel, años, fotos y verificaciones), **Evolución** (gráfico propio de cada sitio: color del hayedo, cosecha de Brihuega, grados-día de Sevilla con tabla de bases y comprobación), **Tiempo**, acciones (Avísame / Yo estuve aquí) y partners de **ejemplo**. |
 | `LineaTiempo.tsx` | Bandas de fechas: amplia (clara), probable (intensa), marca central y línea de la fecha consultada. Nunca muestra una fecha suelta. |
@@ -170,6 +178,7 @@ Se ejecuta con `python pipeline/build.py` y escribe `web/public/data/destinos.js
 |---|---|---|
 | `e2e.py` | Recorrido completo con Playwright: carga, fichas, máquina del tiempo, observación cerca y lejos, alerta, consola sin errores y capturas en 3 tamaños. | `python tests/e2e.py` con `npm run dev` en marcha |
 | `precision_mapa.py` | Que el punto central de cada flor cae exactamente en su coordenada a varios zooms, en móvil y escritorio. | `python tests/precision_mapa.py` |
+| `anuncios.py` | Página de anuncios: menú, selector y URL, enlaces externos (abre una búsqueda de Booking y otra de Google Maps), fuente de cada valoración, banner sin navegación, enlace desde la ficha, desbordes y capturas en 3 tamaños. | `python tests/anuncios.py` |
 | `vivo.mts` | Que la predicción en vivo reproduce el pipeline sin datos y que, con datos reales de 2025 (excluido de los análogos), se acerca a la fecha real. | `node tests/vivo.mts` |
 
 ### 4.10 `.claude/skills/`

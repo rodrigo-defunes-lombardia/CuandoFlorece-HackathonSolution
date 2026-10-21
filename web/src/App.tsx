@@ -13,6 +13,7 @@ import { FormObs } from './components/FormObs'
 import { FormAlerta } from './components/FormAlerta'
 import { cargarTiempo, fusionar, type DiaTiempo, type Tiempo } from './lib/tiempo'
 import { aplicarVivo, type Vivo } from './lib/vivo'
+import { Anuncios } from './components/Anuncios'
 
 export default function App() {
   const [datos, setDatos] = useState<Datos | null>(null)
@@ -21,6 +22,11 @@ export default function App() {
   const [dias, setDias] = useState(0)
   const [obs, setObs] = useState<Observacion[]>([])
   const [modal, setModal] = useState<null | 'obs' | 'alerta'>(null)
+  // Navegación mínima por ruta (sin librería): "/" es el mapa y "/anuncios" la demo de anuncios.
+  const [ruta, setRuta] = useState(window.location.pathname)
+  useEffect(() => { const f = () => setRuta(window.location.pathname); window.addEventListener('popstate', f); return () => window.removeEventListener('popstate', f) }, [])
+  const ir = (url: string) => (e?: React.MouseEvent) => { e?.preventDefault(); window.history.pushState(null, '', url); setRuta(window.location.pathname); setModal(null) }
+  const enAnuncios = ruta.replace(/\/$/, '') === '/anuncios'
 
   useEffect(() => {
     fetch('/data/destinos.json').then(r => { if (!r.ok) throw new Error(); return r.json() }).then(setDatos)
@@ -65,20 +71,25 @@ export default function App() {
     <div className="app">
       <a className="salto" href="#contenido">Saltar al contenido</a>
       <header className="barra">
-        <a className="marca-app" href="#" onClick={() => setSel(null)}><Flor size={28} className="logo" /><span>Cuándo Florece</span></a>
+        <a className="marca-app" href="/" onClick={e => { setSel(null); ir('/')(e) }}><Flor size={28} className="logo" /><span>Cuándo Florece</span></a>
+        <nav className="menu" aria-label="Principal">
+          <a href="/" onClick={ir('/')} aria-current={!enAnuncios ? 'page' : undefined}>Mapa</a>
+          <a href="/anuncios" onClick={ir('/anuncios')} aria-current={enAnuncios ? 'page' : undefined}>Anuncios</a>
+        </nav>
       </header>
 
         <main className="vista" id="contenido">
           {fallo && <p className="err pagina">{fallo}</p>}
           {!datos && !fallo && <div className="cargando" role="status"><Flor size={56} className="gira" /> Cargando el mapa vivo…</div>}
-          {datos && (<>
+          {datos && enAnuncios && <Anuncios destinos={destinos} />}
+          {datos && !enAnuncios && (<>
             <MapView destinos={destinos} estados={estados} seleccionado={sel} onSeleccionar={id => setSel(id)} />
             <div className="flota"><Simulador dias={dias} fecha={fecha} hoy={hoy} onChange={setDias} /></div>
             <aside className="panel" aria-label="Destinos">
               {d ? (
                 <Ficha d={d} fecha={fecha} hoy={hoy} ajuste={ajustes[d.id]} obs={obs.filter(o => o.destinoId === d.id)}
                   tiempo={vd?.tiempo} vivo={vd?.vivo} cargandoTiempo={cargandoT} onRefrescar={() => refrescar(true)}
-                  onVolver={() => setSel(null)} onAlerta={() => setModal('alerta')} onObs={() => setModal('obs')} />
+                  onVolver={() => setSel(null)} onAnuncios={ir(`/anuncios?destino=${d.id}`)} onAlerta={() => setModal('alerta')} onObs={() => setModal('obs')} />
               ) : (
                 <div>
                   <h1 className="titulo">El mapa vivo de la floración en España</h1>

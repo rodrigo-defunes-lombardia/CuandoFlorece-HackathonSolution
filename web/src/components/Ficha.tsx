@@ -15,12 +15,12 @@ import type { Vivo } from '../lib/vivo'
 interface Props {
   d: Destino; fecha: string; hoy: string; ajuste: Ajuste; obs: Observacion[]
   tiempo?: TiempoT; vivo?: Vivo; cargandoTiempo: boolean; onRefrescar: () => void
-  onVolver: () => void; onAlerta: () => void; onObs: () => void
+  onVolver: () => void; onAnuncios: (e: React.MouseEvent) => void; onAlerta: () => void; onObs: () => void
 }
 const NIVEL = { alta: 'Alta', media: 'Media', baja: 'Baja',  } as const
 const fmtF = (x: number) => corta(new Date(x).toISOString().slice(0, 10))
 
-export function Ficha({ d, fecha, hoy, ajuste, obs, tiempo, vivo, cargandoTiempo, onRefrescar, onVolver, onAlerta, onObs }: Props) {
+export function Ficha({ d, fecha, hoy, ajuste, obs, tiempo, vivo, cargandoTiempo, onRefrescar, onVolver, onAnuncios, onAlerta, onObs }: Props) {
   const e = useMemo(() => estadoEn(d, fecha, ajuste), [d, fecha, ajuste])
   const color = colorFase(d.tipo, e.faseId)
   const fases = d.tipo === 'hayedo' ? [{ id: 'previa', etiqueta: 'Verde' }, ...d.fases] : d.fases
@@ -105,6 +105,7 @@ export function Ficha({ d, fecha, hoy, ajuste, obs, tiempo, vivo, cargandoTiempo
           <div className="partner partner--ej"><span className="tag-ej">Ejemplo · Partner</span><b>Restaurante “La Alcarria”</b><p>Menú de temporada a 10 minutos.</p></div>
         </div>
         <p className="nota">Tarjetas de ejemplo para ilustrar el modelo de negocio; no son negocios reales.</p>
+        <a className="btn btn--suave" href={`/anuncios?destino=${d.id}`} onClick={onAnuncios}>Ver anuncios de la zona (demo)</a>
       </section>
     </article>
   )

@@ -8,7 +8,7 @@ python3 -m venv .venv && .venv/bin/pip install pandas numpy
 .venv/bin/python pipeline/build.py      # genera web/public/data/destinos.json
 cd web && npm install && npm run dev    # http://localhost:5173
 ```
-Pruebas (opcional; `pip install playwright pillow && playwright install chromium`, con la app en marcha): `python tests/e2e.py` (recorrido), `python tests/precision_mapa.py` (cada flor cae en su coordenada a varios zooms) y `node tests/vivo.mts` (predicción en vivo).
+Pruebas (opcional; `pip install playwright pillow && playwright install chromium`, con la app en marcha): `python tests/e2e.py` (recorrido), `python tests/precision_mapa.py` (cada flor cae en su coordenada a varios zooms) y `node tests/vivo.mts` (predicción en vivo) y `python tests/anuncios.py` (página de anuncios).
 Los CSV viven en `data/` (los 12 están presentes).
 
 ## Por qué esta tecnología
@@ -29,6 +29,8 @@ Los CSV viven en `data/` (los 12 están presentes).
 | Open-Meteo en vivo: tiempo de los 3 destinos, anomalía de 2026 y predicción de Sevilla en temporada | **Real**, con respaldo a caché local y al CSV |
 | Observaciones semilla (5) | **Demo**, marcadas "de ejemplo" |
 | Alertas, partners | **Simulado** ("Ejemplo" / "Demo") |
+| Página `/anuncios`: ayuntamientos, locales y sus valoraciones | **Real** (valoración con fuente Booking.com o Google Maps, URL y fecha de consulta 21/10/2026) |
+| Página `/anuncios`: promociones, eventos, fechas y textos | **Ficticio**, etiquetado "Ejemplo · ficticio" en cada tarjeta y con aviso fijo |
 | Fecha "hoy" | La del dispositivo (nunca anterior al 21 oct 2026, fecha de los datos): las vistas avanzan solas |
 
 ## Modelo de Sevilla (grados-día)
