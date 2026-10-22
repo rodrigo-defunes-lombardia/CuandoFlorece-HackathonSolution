@@ -37,6 +37,8 @@ function aplicarTema(m: maplibregl.Map, oscuro: boolean) {
 interface Props {
   destinos: Destino[]; estados: Record<string, Estado>; seleccionado: string | null
   onSeleccionar: (id: string) => void
+  /** El mapa 3D no se puede crear (sin WebGL o fallo de MapLibre): la app pasa al mapa alternativo. */
+  onFallo: (error: unknown) => void
 }
 
 /** Resuelve `var(--token)` a su color real: las capas del mapa no entienden variables CSS. */
@@ -67,20 +69,28 @@ function encuadrarTodos(m: maplibregl.Map, destinos: Destino[], duration: number
   m.fitBounds(b, { padding: ancho ? { top: 260, bottom: 130, left: 500, right: 110 } : { top: 230, bottom: m.getContainer().clientHeight * 0.48 + 50, left: 80, right: 80 }, duration, maxZoom: 6.5 })
 }
 
-export function MapView({ destinos, estados, seleccionado, onSeleccionar }: Props) {
+export function MapView({ destinos, estados, seleccionado, onSeleccionar, onFallo }: Props) {
   const cont = useRef<HTMLDivElement>(null)
   const mapa = useRef<maplibregl.Map | null>(null)
   const [listo, setListo] = useState(false)
   const [aviso, setAviso] = useState('')
   const alSeleccionar = useRef(onSeleccionar); alSeleccionar.current = onSeleccionar
+  const alFallar = useRef(onFallo); alFallar.current = onFallo
 
   useEffect(() => {
     if (!cont.current) return
-    const m = new maplibregl.Map({ container: cont.current, style: ESTILO, center: [-3.9, 39.9], zoom: 5.1, minZoom: 3, attributionControl: { compact: true } })
+    // Sin WebGL, MapLibre lanza al construirse: se captura aquí para que el fallo no tumbe el resto de la app
+    let m: maplibregl.Map
+    try {
+      m = new maplibregl.Map({ container: cont.current, style: ESTILO, center: [-3.9, 39.9], zoom: 5.1, minZoom: 3, attributionControl: { compact: true } })
+    } catch (e) { alFallar.current(e); return }
     mapa.current = m
     if (import.meta.env.DEV) (window as unknown as { __mapa?: maplibregl.Map }).__mapa = m // solo para pruebas
     m.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'bottom-right')
-    m.on('error', e => { if (String(e.error?.message || '').match(/fetch|Failed|NetworkError|tiles/i)) setAviso('No se pudo cargar el mapa base (sin conexión). Los destinos siguen disponibles en la lista.') })
+    m.on('error', e => {
+      const msg = String(e.error?.message || '')
+      if (/webgl/i.test(msg)) { alFallar.current(e.error); return }
+      if (msg.match(/fetch|Failed|NetworkError|tiles/i)) setAviso('No se pudo cargar el mapa base (sin conexión). Los destinos siguen disponibles en la lista.') })
     const mq = window.matchMedia(OSCURO)
     const alCambiarTema = (e: MediaQueryListEvent) => aplicarTema(m, e.matches)
     m.on('load', () => {

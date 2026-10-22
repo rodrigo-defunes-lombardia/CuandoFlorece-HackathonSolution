@@ -5,7 +5,8 @@ import { sumaDias } from './lib/fechas'
 import { colorFase } from './lib/colores'
 import { Flor } from './components/Flor'
 import { Badge } from './components/Badge'
-import { MapView } from './components/MapView'
+import { Mapa } from './components/Mapa'
+import { hayWebGL, type ModoMapa } from './lib/webgl'
 import { Simulador } from './components/Simulador'
 import { Ficha } from './components/Ficha'
 import { FormAlerta } from './components/FormAlerta'
@@ -25,11 +26,19 @@ export default function App() {
   useEffect(() => { const f = () => setRuta(window.location.pathname); window.addEventListener('popstate', f); return () => window.removeEventListener('popstate', f) }, [])
   const ir = (url: string) => (e?: React.MouseEvent) => { e?.preventDefault(); window.history.pushState(null, '', url); setRuta(window.location.pathname); setModal(null) }
   const pagina = ruta.replace(/\/$/, '') === '/agencia' ? 'agencia' : 'mapa'
-
-  useEffect(() => {
-    fetch('/data/destinos.json').then(r => { if (!r.ok) throw new Error(); return r.json() }).then(setDatos)
-      .catch(() => setFallo('No encontramos los datos. Ejecuta `python pipeline/build.py` y recarga.'))
+  // Sin WebGL se usa el mapa alternativo; si también falla, solo la lista. Cada fallo baja un escalón y nunca deja la app en blanco.
+  const [modoMapa, setModoMapa] = useState<ModoMapa>(() => hayWebGL() ? 'gl' : 'plano')
+  const bajarModo = useCallback((desde: ModoMapa, e: unknown) => {
+    console.warn('Mapa no disponible, se usa la alternativa:', e)
+    setModoMapa(m => m !== desde ? m : desde === 'gl' ? 'plano' : 'lista')
   }, [])
+
+  const [intento, setIntento] = useState(0)
+  useEffect(() => {
+    setFallo('')
+    fetch('/data/destinos.json').then(r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json() }).then(setDatos)
+      .catch(e => { console.warn('destinos.json:', e); setFallo('No hemos podido cargar los datos de los destinos. Comprueba tu conexión y vuelve a intentarlo.') })
+  }, [intento])
   // "Hoy" es la fecha real del dispositivo (nunca anterior a la de los datos), así las vistas avanzan solas con el calendario.
   const hoy = useMemo(() => { const r = new Date().toISOString().slice(0, 10); return datos && r < datos.hoy_demo ? datos.hoy_demo : r }, [datos])
   const [tiempos, setTiempos] = useState<Record<string, Tiempo>>({})
@@ -61,7 +70,7 @@ export default function App() {
   const vd = vivos.find(v => v.destino.id === sel)
 
   return (
-    <div className={`app app--${pagina}`}>
+    <div className={`app app--${pagina}${pagina === 'mapa' && modoMapa === 'lista' ? ' app--sinmapa' : ''}`}>
       <a className="salto" href="#contenido">Saltar al contenido</a>
       <header className="barra">
         <a className="marca-app" href="/" onClick={e => { setSel(null); ir('/')(e) }}><Flor size={28} className="logo" /><span>Cuándo Florece</span></a>
@@ -73,11 +82,11 @@ export default function App() {
 
         {datos && pagina === 'mapa' && <Franja destinos={destinos} hoy={hoy} onIr={url => ir(url)()} />}
         <main className="vista" id="contenido">
-          {fallo && <p className="err pagina">{fallo}</p>}
+          {fallo && <div className="pagina" role="alert"><p className="err">{fallo}</p><button className="btn" onClick={() => setIntento(i => i + 1)}>Reintentar</button></div>}
           {!datos && !fallo && <div className="cargando" role="status"><Flor size={56} className="gira" /> Cargando el mapa vivo…</div>}
           {datos && pagina === 'agencia' && <Agencia destinos={destinos} hoy={hoy} />}
           {datos && pagina === 'mapa' && (<>
-            <MapView destinos={destinos} estados={estados} seleccionado={sel} onSeleccionar={id => setSel(id)} />
+            <Mapa modo={modoMapa} destinos={destinos} estados={estados} seleccionado={sel} onSeleccionar={setSel} onFallo={bajarModo} />
             <div className="flota"><Simulador dias={dias} fecha={fecha} hoy={hoy} onChange={setDias} /></div>
             <aside className="panel" aria-label="Destinos">
               {d ? (
@@ -86,6 +95,9 @@ export default function App() {
                   onVolver={() => setSel(null)} onAlerta={() => setModal('alerta')} />
               ) : (
                 <div>
+                  {modoMapa !== 'gl' && <p className="aviso-mapa" role="status">{modoMapa === 'plano'
+                    ? 'Tu navegador no puede dibujar el mapa 3D. Te mostramos una versión alternativa.'
+                    : 'Tu navegador no puede dibujar el mapa. Activa la aceleración por hardware o prueba con otro navegador. Todo lo demás funciona igual.'}</p>}
                   <h1 className="titulo">El mapa vivo de la floración en España</h1>
                   <p className="dim">Cuándo y dónde florece, y cuál es el mejor momento para ir. Mueve la máquina del tiempo para ver cómo cambia.</p>
                   <ul className="lista">

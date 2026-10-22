@@ -53,6 +53,18 @@ Bajo cada mes aparecen como chips las plantas en temporada (un mes cuenta si el 
 
 El clima de referencia del modelo térmico se descarga para esa coordenada exacta: los archivos de `pipeline/clima/` llevan la latitud y la longitud en el nombre, así que si cambia el punto se descarga de nuevo.
 
+## Compatibilidad (navegadores sin WebGL)
+- **Navegadores:** Chrome/Edge, Firefox y Safari de los últimos ~2 años (la app usa módulos ES2020). Hace falta JavaScript; sin él, `index.html` muestra un aviso estático.
+- **Mapa 3D** (MapLibre): necesita WebGL. Antes de crearlo, `web/src/lib/webgl.ts` prueba a abrir un contexto `webgl2`/`webgl` en un lienzo temporal.
+- **Sin WebGL** (equipos de empresa con la aceleración por hardware desactivada, máquinas virtuales, escritorios remotos, algunos proyectores): se descarga con `import()` un mapa alternativo con Leaflet (`MapaPlano.tsx`, +45 kB gzip, solo en ese caso). Usa la misma imagen satélite de Esri, nombres y límites de Esri, y las mismas flores, estados, fichas y simulador de fecha. Arriba de la lista aparece «Tu navegador no puede dibujar el mapa 3D. Te mostramos una versión alternativa».
+- **Escalones ante fallos:** si MapLibre lanza al crearse o avisa de un error de WebGL, se pasa al mapa alternativo. Si este tampoco carga, queda solo la lista como vista principal, con el aviso «Activa la aceleración por hardware o prueba con otro navegador». Agencia, ficha, franja y simulador no dependen del mapa.
+- **Cualquier otro fallo de render:** un error boundary global (`Limite.tsx`) muestra «Algo no ha ido bien», con el botón «Recargar» y el detalle técnico plegable y copiable. Si falla `destinos.json`, aparece un mensaje en lenguaje llano con «Reintentar».
+
+**Probar sin WebGL**
+- A mano: en Chrome, `chrome://settings/system` → desactiva «Usar aceleración gráfica cuando esté disponible» y reinicia el navegador. También puedes lanzarlo con `--disable-gpu --disable-webgl --disable-3d-apis`. En `chrome://gpu`, WebGL debe aparecer como «Disabled».
+- Automático: con `npm run dev` en marcha, `.venv/bin/python tests/sin_webgl.py [carpeta_capturas]`. Prueba sin WebGL, con WebGL, MapLibre roto con teselas caídas, MapLibre y Leaflet rotos, `destinos.json` caído y un fallo de render forzado, en 390×844, 768×1024 y 1440×900.
+  - En una Raspberry Pi sin las librerías de Chromium del sistema, antepón `LD_LIBRARY_PATH=~/.cache/pwlibs/usr/lib/aarch64-linux-gnu`.
+
 ## Limitaciones
 - Datos fenológicos de Sevilla muy escasos (2 años, 7 fotos casuales): márgenes anchos a propósito.
 - Brihuega: no se guardó la predicción de 2026, así que no se puede medir su acierto; se compara el 2026 real con la predicción 2027.

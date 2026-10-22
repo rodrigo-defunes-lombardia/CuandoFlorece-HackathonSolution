@@ -257,3 +257,40 @@ fieldset{border:0;padding:0;margin:0 0 var(--s-3)}legend{font-weight:600;margin-
 .franja-vacio{text-align:center;color:var(--text-faint);min-height:36px;display:flex;align-items:center;justify-content:center}
 .franja-origen{margin:0;padding:2px var(--s-4) 6px;font-size:.7rem;color:var(--text-faint);text-align:right}
 @media (min-width:1024px){.franja{--col-w:72px}}
+
+/* Sin WebGL (ver Mapa.tsx): mapa alternativo con Leaflet, o solo la lista si tampoco puede dibujarse */
+.aviso-mapa{margin:0 0 var(--s-3);padding:var(--s-2) var(--s-3);border-left:3px solid var(--amber);background:var(--bg-2);border-radius:0 var(--r-sm) var(--r-sm) 0;font-size:.85rem;color:var(--text-dim)}
+.mapa--plano .mapa-lienzo{isolation:isolate} /* las capas de Leaflet (z-index 400–1000) no tapan panel ni simulador */
+.mapa--plano .leaflet-container{background:#1B2330;font-family:var(--font-sans)}
+.mapa--plano .leaflet-container .leaflet-control-attribution{background:rgba(27,35,48,.92);color:var(--text);font-size:11px;padding:2px 6px}
+.mapa--plano .leaflet-control-attribution a{color:var(--text)}
+.mapa--plano .leaflet-bar a{background:var(--bg-2);color:var(--text);border-color:var(--line);width:36px;height:36px;line-height:36px}
+.mapa--plano .leaflet-bar a:hover{background:var(--bg-3)}
+.mapa--plano .mapa-aviso{z-index:3}
+@media (prefers-color-scheme: dark){.mapa--plano .plano-satelite{filter:brightness(.62) saturate(.7) contrast(1.08)}}
+.pin{background:none;border:0}
+.pin:focus-visible{outline:none}
+.pin:focus-visible .pin-flor{outline:3px solid var(--amber);outline-offset:3px;border-radius:50%}
+.pin-flor{width:44px;height:44px;display:block;transition:transform .2s}
+.pin-flor ellipse{fill:var(--c);stroke:rgba(20,14,26,.85);stroke-width:1.2;transition:fill .4s}
+.pin-centro{fill:var(--bg)}.pin-punto{fill:var(--text)}
+.pin--sel .pin-flor{transform:scale(1.15);filter:drop-shadow(0 0 0 #F0B35A) drop-shadow(0 0 8px rgba(240,179,90,.8))}
+.pin-txt{position:absolute;top:44px;left:50%;transform:translateX(-50%);white-space:nowrap;text-align:center;color:#FFFFFF;font-size:13px;line-height:1.25;
+  text-shadow:0 0 2px rgba(20,14,26,.95),0 0 4px rgba(20,14,26,.9),0 1px 3px rgba(20,14,26,.9);pointer-events:none}
+.pin-txt--oculta{visibility:hidden}
+.pin-txt b{display:block;font-weight:700}.pin-txt span{font-size:11px}
+@media (max-width:859px){
+  .mapa--plano .leaflet-bottom{bottom:48%} /* zoom y atribución, encima del panel inferior */
+  .mapa--plano .mapa-aviso{bottom:calc(48% + 96px)}
+}
+/* Solo la lista: el panel pasa a ser la vista principal, con el scroll del documento */
+.app--mapa.app--sinmapa{height:auto}
+.app--sinmapa .flota{position:static;margin:var(--s-3) var(--s-3) 0}
+.app--sinmapa .panel{position:static;height:auto;width:auto;max-width:720px;margin:var(--s-3) auto 0;border-radius:var(--r-lg);border:1px solid var(--line);box-shadow:none;overflow:visible}
+@media (min-width:860px){.app--sinmapa .flota{width:auto;max-width:720px;margin:var(--s-4) auto 0}}
+/* Fallo general (Limite.tsx) */
+.fallo{max-width:620px;margin:0 auto;padding:var(--s-6) var(--s-4);display:flex;flex-direction:column;align-items:flex-start;gap:var(--s-3)}
+.fallo-flor{--c:var(--st-caida)}
+.fallo-det{width:100%;margin-top:var(--s-4);border-top:1px solid var(--line);padding-top:var(--s-3)}
+.fallo-det summary{cursor:pointer;color:var(--text-dim)}
+.fallo-det pre{background:var(--bg-2);border:1px solid var(--line);border-radius:var(--r-sm);padding:var(--s-3);font-size:.75rem;white-space:pre-wrap;word-break:break-word;max-height:40vh;overflow:auto;user-select:all}
