@@ -23,7 +23,9 @@ export interface ModeloTermico {
 }
 export interface Destino {
   id: string; nombre: string; especie: string; tipo: 'flor' | 'hayedo'; region: string
-  lat: number; lon: number; temporada: number; resumen: string
+  /** Coordenada y zoom de la ficha: fuente en COORDENADAS de pipeline/build.py. */
+  lat: number; lon: number; zoom: number; temporada: number; resumen: string
+  calendario?: CalendarioPlanta
   hitos: Hito[]; fases: Fase[]; fin: string; ventana: [string, string]; curva: [string, number][]
   confianza: Confianza; origenes: string[]
   modelo?: ModeloSevilla
@@ -39,10 +41,8 @@ export interface Destino {
     clima_hasta: string; color_hasta: string
   }
 }
+/** Meses de temporada para la franja de encima del mapa (calculados en el pipeline; `base` explica de qué dato salen). */
+export interface CalendarioPlanta { planta: string; mes_desde: number; mes_hasta: number; desde: string; hasta: string; base: string; origen: string }
 export interface Datos { generado: string; hoy_demo: string; destinos: Destino[] }
 
-export interface Observacion {
-  id: string; destinoId: string; fecha: string; lat: number; lon: number; distancia_km: number
-  fase: string; comentario: string; foto?: string; demo: boolean
-}
 export interface Alerta { id: string; destinoId: string; email: string; creada: string }

@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import maplibregl, { type StyleSpecification } from 'maplibre-gl'
 import 'maplibre-gl/dist/maplibre-gl.css'
 import type { Destino } from '../lib/tipos'
-import type { Estado } from '../lib/estado'
+import { momentoTexto, type Estado } from '../lib/estado'
 import { colorFase } from '../lib/colores'
 
 /** Vista satélite (Esri World Imagery, sin clave) con nombres y límites de OpenFreeMap encima, como la vista satélite de Google. */
@@ -59,6 +59,14 @@ function imagenFlor(color: string, px = 2) {
   return { img: g.getImageData(0, 0, c.width, c.height), px }
 }
 
+/** Encuadre de España con todos los destinos, dejando libre la zona que tapa el panel. */
+function encuadrarTodos(m: maplibregl.Map, destinos: Destino[], duration: number) {
+  const ancho = window.innerWidth > 859
+  const b = new maplibregl.LngLatBounds()
+  destinos.forEach(d => b.extend([d.lon, d.lat]))
+  m.fitBounds(b, { padding: ancho ? { top: 260, bottom: 130, left: 500, right: 110 } : { top: 230, bottom: m.getContainer().clientHeight * 0.48 + 50, left: 80, right: 80 }, duration, maxZoom: 6.5 })
+}
+
 export function MapView({ destinos, estados, seleccionado, onSeleccionar }: Props) {
   const cont = useRef<HTMLDivElement>(null)
   const mapa = useRef<maplibregl.Map | null>(null)
@@ -97,10 +105,7 @@ export function MapView({ destinos, estados, seleccionado, onSeleccionar }: Prop
       mq.addEventListener('change', alCambiarTema)
       setListo(true)
     })
-    const ancho = window.innerWidth > 859
-    const b = new maplibregl.LngLatBounds()
-    destinos.forEach(d => b.extend([d.lon, d.lat]))
-    m.fitBounds(b, { padding: ancho ? { top: 260, bottom: 130, left: 500, right: 110 } : { top: 230, bottom: cont.current.clientHeight * 0.48 + 50, left: 80, right: 80 }, duration: 0, maxZoom: 6.5 })
+    encuadrarTodos(m, destinos, 0)
     return () => { mq.removeEventListener('change', alCambiarTema); m.remove(); mapa.current = null; setListo(false) }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
@@ -112,7 +117,7 @@ export function MapView({ destinos, estados, seleccionado, onSeleccionar }: Prop
       const e = estados[d.id], color = resolver(colorFase(d.tipo, e.faseId)), icono = `flor-${color}`
       if (!m.hasImage(icono)) { const { img, px } = imagenFlor(color); m.addImage(icono, img, { pixelRatio: px }) }
       return { type: 'Feature' as const, geometry: { type: 'Point' as const, coordinates: [d.lon, d.lat] },
-        properties: { id: d.id, nombre: d.nombre.replace('Hayedo de ', ''), estado: `${e.etiqueta}${e.enTemporada ? ` · ${e.pct} %` : ''}`, icono, sel: seleccionado === d.id, orden: seleccionado === d.id ? 2 : e.enTemporada ? 1 : 0 } }
+        properties: { id: d.id, nombre: d.nombre.replace('Hayedo de ', ''), estado: `${e.etiqueta}${e.enTemporada ? ` · ${e.momento}` : ''}`, icono, sel: seleccionado === d.id, orden: seleccionado === d.id ? 2 : e.enTemporada ? 1 : 0 } }
     })
     ;(m.getSource('destinos') as maplibregl.GeoJSONSource).setData({ type: 'FeatureCollection', features })
   }, [destinos, estados, seleccionado, listo])
@@ -120,7 +125,9 @@ export function MapView({ destinos, estados, seleccionado, onSeleccionar }: Prop
   useEffect(() => {
     const d = destinos.find(x => x.id === seleccionado)
     // Centra el destino en la parte del mapa que queda visible (a la derecha del panel en escritorio, encima en móvil)
-    if (d && mapa.current) mapa.current.easeTo({ center: [d.lon, d.lat], zoom: Math.max(mapa.current.getZoom(), 7.2), duration: 700, offset: window.innerWidth > 859 ? [220, 80] : [0, -170] })
+    if (d && mapa.current) mapa.current.easeTo({ center: [d.lon, d.lat], zoom: d.zoom, duration: 900, offset: window.innerWidth > 859 ? [220, 80] : [0, -170] })
+    // Al volver a la lista, vuelve la vista de España con todos los destinos
+    else if (!seleccionado && mapa.current && listo) encuadrarTodos(mapa.current, destinos, 900)
   }, [seleccionado, destinos])
 
   return (
@@ -130,7 +137,7 @@ export function MapView({ destinos, estados, seleccionado, onSeleccionar }: Prop
       <ul className="mapa-a11y" aria-label="Destinos en el mapa">
         {destinos.filter(d => estados[d.id]).map(d => {
           const e = estados[d.id]
-          return <li key={d.id}><button className="marca" onClick={() => onSeleccionar(d.id)}>{`${d.nombre}: ${e.etiqueta}${e.enTemporada ? `, ${e.pct} %` : ''}`}</button></li>
+          return <li key={d.id}><button className="marca" onClick={() => onSeleccionar(d.id)}>{`${d.nombre}: ${e.etiqueta}${e.enTemporada ? `, ${momentoTexto(e, d.tipo).toLowerCase()}` : ''}`}</button></li>
         })}
       </ul>
       {aviso && <p className="mapa-aviso" role="status">{aviso}</p>}

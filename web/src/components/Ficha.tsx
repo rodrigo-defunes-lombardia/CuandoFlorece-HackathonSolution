@@ -1,33 +1,29 @@
 import { useEffect, useMemo, useState } from 'react'
-import type { Destino, Observacion } from '../lib/tipos'
-import { estadoEn, type Ajuste } from '../lib/estado'
-import { aMs, corta, diasEntre, haceCuanto, larga, rango } from '../lib/fechas'
+import type { Destino } from '../lib/tipos'
+import { estadoEn, momentoTexto, type Ajuste } from '../lib/estado'
+import { aMs, corta, diasEntre, larga, rango } from '../lib/fechas'
 import { colorFase } from '../lib/colores'
 import { anomaliaSevilla, type Anomalia } from '../lib/openmeteo'
 import { Badge } from './Badge'
 import { Flor } from './Flor'
 import { Grafico, type Serie } from './Grafico'
-import { LineaTiempo } from './LineaTiempo'
 import { Tiempo } from './Tiempo'
 import type { Tiempo as TiempoT } from '../lib/tiempo'
 import type { Vivo } from '../lib/vivo'
 
 interface Props {
-  d: Destino; fecha: string; hoy: string; ajuste: Ajuste; obs: Observacion[]
+  d: Destino; fecha: string; hoy: string; ajuste: Ajuste
   tiempo?: TiempoT; vivo?: Vivo; cargandoTiempo: boolean; onRefrescar: () => void
-  onVolver: () => void; onAnuncios: (e: React.MouseEvent) => void; onAlerta: () => void; onObs: () => void
+  onVolver: () => void; onAlerta: () => void
 }
-const NIVEL = { alta: 'Alta', media: 'Media', baja: 'Baja',  } as const
 const fmtF = (x: number) => corta(new Date(x).toISOString().slice(0, 10))
 
-export function Ficha({ d, fecha, hoy, ajuste, obs, tiempo, vivo, cargandoTiempo, onRefrescar, onVolver, onAnuncios, onAlerta, onObs }: Props) {
+export function Ficha({ d, fecha, hoy, ajuste, tiempo, vivo, cargandoTiempo, onRefrescar, onVolver, onAlerta }: Props) {
   const e = useMemo(() => estadoEn(d, fecha, ajuste), [d, fecha, ajuste])
   const color = colorFase(d.tipo, e.faseId)
   const fases = d.tipo === 'hayedo' ? [{ id: 'previa', etiqueta: 'Verde' }, ...d.fases] : d.fases
   const idxActiva = fases.findIndex(f => f.id === e.faseId)
-  const hitosClave = ['inicio', d.fin]
-  const nCom = ajuste.n
-  const origenes = [...d.origenes, ...(nCom > 0 ? ['Comunidad'] : [])]
+  const temporada: [string, string] = [e.hitos[0].c, e.hitos.find(h => h.id === d.fin)!.c]
   const [anom, setAnom] = useState<Anomalia | null>(null)
   useEffect(() => { if (d.id === 'sevilla' && d.modelo) anomaliaSevilla(d.modelo, d.lat, d.lon, hoy).then(setAnom) }, [d, hoy])
 
@@ -37,15 +33,23 @@ export function Ficha({ d, fecha, hoy, ajuste, obs, tiempo, vivo, cargandoTiempo
       <header className="ficha-cab">
         <p className="sobre">{d.especie} · {d.region}</p>
         <h2 id="ficha-titulo">{d.nombre}</h2>
-        <div className="badges">{origenes.map(o => <Badge key={o} origen={o} n={nCom} />)}</div>
+        <div className="badges">{d.origenes.map(o => <Badge key={o} origen={o} />)}</div>
       </header>
 
-      {/* 1. ¿Está en flor? */}
+      {/* 1. ¿Cuándo ir? */}
+      <section className="bloque" aria-label="Cuándo ir">
+        <h3>Cuándo ir</h3>
+        <p className="ventana"><b>{rango([e.ventana.desde, e.ventana.hasta])}</b> <span className="dim">mejor momento{e.anioExtra ? ' (año siguiente)' : ''}</span></p>
+        <p className="dim">Temporada completa: {rango(temporada)}</p>
+        {vivo?.texto && <p className="vivo" role="status">{vivo.activo ? <Badge origen="Open-Meteo" /> : null} {vivo.texto}</p>}
+      </section>
+
+      {/* 2. ¿Está en flor? */}
       <section className="bloque estado" style={{ ['--c' as string]: color }} aria-label="Estado actual">
         <div className="estado-cab">
           <Flor size={44} />
           <div><p className="estado-fase">{e.etiqueta}</p>
-            <p className="estado-sub">{e.enTemporada ? `${e.pct} % de ${d.tipo === 'hayedo' ? 'color' : 'floración'} estimado` : e.proxima ? `Empieza hacia el ${corta(e.proxima)}` : 'Hasta la próxima temporada'}
+            <p className="estado-sub">{e.enTemporada ? momentoTexto(e, d.tipo) : e.proxima ? `Empieza hacia el ${corta(e.proxima)}` : 'Hasta la próxima temporada'}
               {' · '}<span className="dim">{fecha === hoy ? 'hoy' : larga(fecha)}</span></p></div>
         </div>
         <ol className="fases" aria-label="Fases de la temporada">
@@ -54,40 +58,10 @@ export function Ficha({ d, fecha, hoy, ajuste, obs, tiempo, vivo, cargandoTiempo
               style={{ ['--fc' as string]: colorFase(d.tipo, f.id) }}><span className="fase-barra" /><span className="fase-txt">{f.etiqueta}</span></li>
           ))}
         </ol>
-        {d.tipo === 'hayedo' && <p className="nota">Rampa del hayedo: verde → ocre → cobre. El color visto por satélite es una estimación desde el espacio, no una medida.</p>}
+        {d.tipo === 'hayedo' && <p className="nota">Rampa del hayedo: verde → ocre → cobre.</p>}
       </section>
 
-      {/* 2. ¿Cuándo ir? */}
-      <section className="bloque" aria-label="Cuándo ir">
-        <h3>Cuándo ir</h3>
-        <p className="ventana"><b>{rango([e.ventana.desde, e.ventana.hasta])}</b> <span className="dim">ventana óptima central</span></p>
-        <p className="dim">Probable: {rango(e.ventana.probable)} · Amplio: {rango(e.ventana.amplia)}{e.anioExtra ? ' · calendario del año siguiente' : ''}</p>
-        <LineaTiempo estado={e} fecha={fecha} hitosMostrar={hitosClave} />
-        {vivo?.texto && <p className="vivo" role="status">{vivo.activo ? <Badge origen="Open-Meteo" /> : null} {vivo.texto}</p>}
-        {d.termico && (
-          <details className="det"><summary>Cómo se ajusta con el tiempo (modelo experimental)</summary>
-            <p>{d.termico.explicacion}</p>
-            <p>Los datos de referencia ({d.termico.anios[0]}–{d.termico.anios[d.termico.anios.length - 1]}) y los de la temporada en curso vienen de Open-Meteo. Se actualiza solo al abrir la app y cada 30 minutos.</p>
-            {d.termico.validacion && <p>{d.termico.validacion.nota}</p>}
-          </details>
-        )}
-        {ajuste.desplazamiento !== 0 && <p className="comunidad">La comunidad ha movido la predicción <b>{Math.abs(ajuste.desplazamiento).toFixed(1)} días {ajuste.desplazamiento < 0 ? 'antes' : 'después'}</b> y estrechado el margen un {Math.round((1 - ajuste.factor) * 100)} %.</p>}
-        {d.hitos.some(h => h.revisar) && <p className="aviso" role="note"><b>Pendiente de revisar:</b> el satélite marcó el inicio el {corta(d.hitos[0].detectado_2026?.fecha ?? '')} (confirmado {corta(d.hitos[0].detectado_2026?.confirmado ?? '')}), semanas antes que en cualquier otoño anterior. No lo usamos para mover el calendario hasta revisarlo.</p>}
-      </section>
-
-      {/* 3. ¿Con qué fiabilidad? */}
-      <section className="bloque" aria-label="Cuánto confiar">
-        <h3>Cuánto confiar</h3>
-        <p className="confianza"><span className={`nivel nivel--${d.confianza.nivel}`}>{NIVEL[d.confianza.nivel]}</span>
-          {d.confianza.anios > 0 && <span> · respaldado por <b>{d.confianza.anios} {d.id === 'sevilla' ? 'años con observaciones' : 'años'}</b></span>}
-          {d.confianza.observaciones > 0 && <span> · {d.confianza.observaciones} fotos</span>}</p>
-        <p>{d.confianza.texto}</p>
-        <p className="comunidad-n">{nCom > 0
-          ? <>Verificado por <b>{nCom} {nCom === 1 ? 'persona' : 'personas'}</b>{ajuste.demos ? ` (${ajuste.demos} de ejemplo)` : ''} · última {ajuste.ultima ? haceCuanto(ajuste.ultima, hoy) : ''}.</>
-          : 'Aún sin verificaciones de la comunidad. ¿Estás allí? Cuéntanos qué ves.'}</p>
-      </section>
-
-      {/* 4. Evolución */}
+      {/* 3. Evolución */}
       <section className="bloque" aria-label="Evolución">
         <h3>Evolución</h3>
         <Evolucion d={d} fecha={fecha} hoy={hoy} anom={anom} />
@@ -96,23 +70,11 @@ export function Ficha({ d, fecha, hoy, ajuste, obs, tiempo, vivo, cargandoTiempo
       <section className="bloque" aria-label="Tiempo">
         <h3>Tiempo</h3>
         <Tiempo d={d} t={tiempo} hoy={hoy} cargando={cargandoTiempo} onRefrescar={onRefrescar}
-          nota={d.id === 'brihuega' ? 'Desde el 1 de enero, esta temperatura ajusta la predicción de la lavanda (modelo experimental).' : d.id === 'tejera_negra' ? 'Une el CSV del proyecto con datos en vivo; la temperatura desde el 1 de agosto ajusta el calendario del hayedo (modelo experimental).' : ''} />
+          nota={d.id === 'brihuega' ? 'Desde el 1 de enero, esta temperatura ajusta la fecha de la lavanda.' : d.id === 'tejera_negra' ? 'Desde el 1 de agosto, esta temperatura ajusta el calendario del hayedo.' : ''} />
       </section>
 
-      {/* Acciones */}
       <section className="acciones" aria-label="Acciones">
         <button className="btn btn--primario" onClick={onAlerta}>Avísame cuando llegue la flor</button>
-        <button className="btn" onClick={onObs}>Yo estuve aquí</button>
-      </section>
-
-      <section className="bloque" aria-label="Cerca de aquí">
-        <h3>Para completar el viaje <span className="tag-ej">Ejemplo</span></h3>
-        <div className="partners">
-          <div className="partner partner--ej"><span className="tag-ej">Ejemplo · Partner</span><b>Casa rural “El Hayedo”</b><p>Alojamiento con desayuno de producto local.</p></div>
-          <div className="partner partner--ej"><span className="tag-ej">Ejemplo · Partner</span><b>Restaurante “La Alcarria”</b><p>Menú de temporada a 10 minutos.</p></div>
-        </div>
-        <p className="nota">Tarjetas de ejemplo para ilustrar el modelo de negocio; no son negocios reales.</p>
-        <a className="btn btn--suave" href={`/anuncios?destino=${d.id}`} onClick={onAnuncios}>Ver anuncios de la zona (demo)</a>
       </section>
     </article>
   )
@@ -129,7 +91,7 @@ function Evolucion({ d, fecha, hoy, anom }: { d: Destino; fecha: string; hoy: st
       <Badge origen="Satélite" />
       <Grafico titulo="Índice de color del hayedo" descripcion={`Del ${corta(c[0].fecha)} al ${corta(c[c.length - 1].fecha)}; banda entre percentiles 25 y 75 de las zonas.`}
         series={[col, hoja]} xFmt={fmtF} marcas={fecha <= '2026-12-31' ? marcaHoy : []} />
-      <p className="nota">Índice de color: estimación desde el espacio, no una medida. Última imagen: {larga(d.serie.color_hasta)}. La banda es el rango entre el 25 % y el 75 % de las zonas.</p>
+      <p className="nota">Última imagen: {larga(d.serie.color_hasta)}. La banda es el rango entre el 25 % y el 75 % de las zonas.</p>
     </>)
   }
   if (d.id === 'brihuega' && d.historia) {
@@ -142,10 +104,10 @@ function Evolucion({ d, fecha, hoy, anom }: { d: Destino; fecha: string; hoy: st
         series={[serie]} xFmt={fmtF} yFmt={v => `${Math.round(v)} %`} yMin={0} yMax={100}
         marcas={[{ x: x(String(r.cosecha_10)), texto: '10 %', color: 'var(--amber)' }, { x: x(String(r.cosecha_50)), texto: '50 %', color: 'var(--amber)' }]} />
       <table className="tabla"><caption>2026 (real) frente a 2027 (predicho)</caption>
-        <thead><tr><th>Hito</th><th>2026 satélite (±3 d)</th><th>2027 central</th></tr></thead>
+        <thead><tr><th>Hito</th><th>2026 satélite</th><th>2027 central</th></tr></thead>
         <tbody><tr><td>10 % cortado</td><td>{corta(String(r.cosecha_10))}</td><td>{corta(c10.central)} <small>({diasEntre(`2027-${String(r.cosecha_10).slice(5)}`, c10.central) >= 0 ? '+' : ''}{diasEntre(`2027-${String(r.cosecha_10).slice(5)}`, c10.central)} d)</small></td></tr>
           <tr><td>Cosecha casi completa</td><td>{corta(String(r.cosecha_final))}</td><td>{corta(c50.central)}</td></tr></tbody></table>
-      <p className="nota">{h.nota_comparacion} Los hitos son cortes detectados por satélite (±3 días): una estimación, no una medida. Predicción emitida el {larga(h.emision_prediccion)} (modelo de climatología, 10 temporadas).</p>
+      <p className="nota">{h.nota_comparacion} Predicción emitida el {larga(h.emision_prediccion)} (modelo de climatología, 10 temporadas).</p>
     </>)
   }
   if (d.id === 'sevilla' && d.modelo) {
@@ -160,14 +122,6 @@ function Evolucion({ d, fecha, hoy, anom }: { d: Destino; fecha: string; hoy: st
         <p className="anom"><Badge origen={anom.origen === 'live' ? 'Modelo grados-día' : 'Calendario histórico'} /> <b>Temporada {anom.anio}: {anom.diasAdelanto === 0 ? 'en la media' : `${Math.abs(anom.diasAdelanto)} días ${anom.diasAdelanto > 0 ? 'adelantada' : 'retrasada'}`}</b> respecto a la media, por acumulación térmica
           ({Math.round(anom.gdd75)} frente a {Math.round(anom.gdd75Media)} °C·día a mitad de marzo). <span className="dim">{anom.nota}.</span></p>
       )}
-      <details className="det"><summary>Cómo funciona el modelo y qué incertidumbre tiene</summary>
-        <p>Sumamos cada día <code>max(0, (Tmáx+Tmín)/2 − base)</code> desde el {m.inicio_acumulacion}. La flor aparece al alcanzar un umbral de calor calibrado con las {m.obs_individuales} fotos disponibles ({m.anios_calibracion.join(' y ')}). Después buscamos cuándo se alcanza ese umbral en cada uno de los {m.anios_clima.length} años de temperatura y damos el rango (percentiles 25–75 como “probable”, ampliado con el margen de calibración como “amplio”).</p>
-        <p>{m.justificacion_base}</p>
-        <table className="tabla"><caption>Bases probadas</caption><thead><tr><th>Base</th><th>Umbral</th><th>CV</th><th>Pico mediano</th></tr></thead>
-          <tbody>{m.bases_probadas.map(b => <tr key={b.base} className={b.base === m.base_c ? 'fila-sel' : ''}><td>{b.base} °C{b.base === m.base_c ? ' ✓' : ''}</td><td>{Math.round(b.umbral_pico)}</td><td>{(b.cv * 100).toFixed(1)} %</td><td>día {Math.round(b.pico_central_doy)}</td></tr>)}</tbody></table>
-        <p>Comprobación dejando un año fuera: {m.backtest_loo.map(b => `${b.anio}: ${b.error_dias > 0 ? '+' : ''}${b.error_dias} días`).join(' · ')}. Con solo 2 años es una comprobación débil, no una garantía.</p>
-        <p className="nota">Las observaciones son fotos casuales de iNaturalist ({m.observaciones.length}); la temperatura llega hasta el {larga(m.meteo_hasta)}.</p>
-      </details>
     </>)
   }
   return null

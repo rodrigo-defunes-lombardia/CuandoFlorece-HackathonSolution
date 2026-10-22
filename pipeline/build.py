@@ -17,6 +17,26 @@ SALIDA = RAIZ / "web" / "public" / "data"
 CLIMA = Path(__file__).resolve().parent / "clima"  # histórico de Open-Meteo descargado una vez (se versiona para poder reconstruir sin red)
 HOY = date(2026, 10, 21)  # fecha de la demo (se puede sobrescribir con --hoy en el futuro)
 
+# Coordenadas de cada destino: ÚNICA fuente de verdad (la web y los tests las leen de destinos.json).
+# Las anteriores se escribieron a mano sin fuente; los CSV de satélite no traen coordenadas.
+# "zoom" es el acercamiento del mapa al abrir la ficha (cuanto más pequeña la zona, más cerca).
+# Consultas del 21/10/2026.
+COORDENADAS = {
+    # Centro del hayedo: centroide del Parque Natural del Hayedo de Tejera Negra en OpenStreetMap
+    # (way 291428852, Nominatim: 41.2362711, -3.3769312). Contraste: bosque caducifolio OSM relation 3427702
+    # (centro 41.2419, -3.3783, a 0,6 km) y Wikidata Q11682361 (41.2153, -3.39649, a 2,8 km).
+    # No tenemos la posición de las 7 zonas de seguimiento por satélite: el centro del parque es la mejor aproximación.
+    "tejera_negra": {"lat": 41.2363, "lon": -3.3769, "zoom": 11.5},
+    # Centro de la zona de naranjos del casco histórico: barrio de Santa Cruz, entre la Catedral, el Real Alcázar
+    # y sus patios y jardines. Centroide del barrio en OpenStreetMap (relation 4649140, Nominatim: 37.3853641, -5.9910470).
+    # Contraste: Catedral (relation 5641600, a 0,2 km) y Real Alcázar (way 22747187, a 0,25 km).
+    "sevilla": {"lat": 37.3854, "lon": -5.9910, "zoom": 14.5},
+    # Brihuega y sus lavandares: OpenStreetMap no tiene cartografiados los campos (0 resultados con crop=lavender),
+    # así que se usa el núcleo del municipio, rodeado por los campos. Wikidata Q52615 (40.760555555556, -2.8691666666667);
+    # contraste: municipio en OpenStreetMap (relation 341304, Nominatim: 40.7592489, -2.8703477, a 0,2 km).
+    "brihuega": {"lat": 40.7606, "lon": -2.8692, "zoom": 12},
+}
+
 
 def iso(d):
     return d.isoformat()
@@ -185,7 +205,7 @@ def destino_sevilla():
     curva = [[iso(ini), 0], [iso(mid), 100], [iso(fin), 0]]
     return {
         "id": "sevilla", "nombre": "Azahar de Sevilla", "especie": "Azahar (naranjo amargo)", "tipo": "flor",
-        "region": "Andalucía", "lat": 37.3891, "lon": -5.9845,
+        "region": "Andalucía", **COORDENADAS["sevilla"],
         "temporada": 2027,
         "resumen": "Los naranjos de las calles de Sevilla perfuman la ciudad entre marzo y abril.",
         "hitos": hitos,
@@ -239,7 +259,7 @@ def destino_brihuega():
               "frac_cortada": float(temp.frac_cortada)}
     return {
         "id": "brihuega", "nombre": "Brihuega", "especie": "Lavanda y lavandín", "tipo": "flor",
-        "region": "Castilla-La Mancha (Guadalajara)", "lat": 40.7688, "lon": -2.8693, "temporada": 2027,
+        "region": "Castilla-La Mancha (Guadalajara)", **COORDENADAS["brihuega"], "temporada": 2027,
         "resumen": "Campos violetas de la Alcarria: la temporada alcanza su plenitud en julio.",
         "hitos": hitos,
         "fases": construir_fases(hitos, [("brote", "Brote", "inicio"), ("floracion", "Floración activa", "floracion"),
@@ -304,7 +324,7 @@ def destino_tejera():
            "lluvia": None if pd.isna(x.lluvia) else x.lluvia} for x in clima.itertuples()]
     return {
         "id": "tejera_negra", "nombre": "Hayedo de Tejera Negra", "especie": "Hayedo (otoño)", "tipo": "hayedo",
-        "region": "Castilla-La Mancha (Guadalajara)", "lat": 41.1550, "lon": -3.4230, "temporada": 2026,
+        "region": "Castilla-La Mancha (Guadalajara)", **COORDENADAS["tejera_negra"], "temporada": 2026,
         "resumen": "El hayedo más meridional de Europa se tiñe de ocre y cobre cada otoño.",
         "hitos": hitos,
         "fases": construir_fases(hitos, [("verde", "Verde", ""), ("brote", "Cambiando", "inicio"), ("floracion", "Color avanzado", "floracion"),
@@ -330,9 +350,10 @@ def destino_tejera():
 # las fechas del CSV, SIN estrechar los márgenes. Como la temperatura base es desconocida, se prueban varias y se usa la mediana.
 
 def clima_openmeteo(nombre, lat, lon, inicio, fin):
-    """Serie diaria de Open-Meteo (API de archivo, sin clave). Se descarga una vez y se guarda en pipeline/clima/."""
+    """Serie diaria de Open-Meteo (API de archivo, sin clave). Se descarga una vez y se guarda en pipeline/clima/.
+    La coordenada va en el nombre: si cambia, se descarga de nuevo en vez de reutilizar el clima de otro punto."""
     CLIMA.mkdir(exist_ok=True)
-    ruta = CLIMA / f"{nombre}_{inicio}_{fin}.csv"
+    ruta = CLIMA / f"{nombre}_{lat:.4f}_{lon:.4f}_{inicio}_{fin}.csv"
     if not ruta.exists():
         url = (f"https://archive-api.open-meteo.com/v1/archive?latitude={lat}&longitude={lon}&start_date={inicio}&end_date={fin}"
                "&daily=temperature_2m_max,temperature_2m_min&timezone=Europe%2FMadrid")
@@ -417,11 +438,53 @@ def termico_tejera(dest):
                           "el calendario no trae fechas por año para validarlo.")
 
 
+# ---------------------------------------------------------------------------
+# Calendario de temporadas (franja de meses encima del mapa). Se calcula aquí, a partir de los CSV, nunca a mano.
+# Regla común: del extremo más temprano al más tardío observado (o del rango amplio, si es una predicción).
+
+MES = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"]
+
+
+def calendario(planta, desde, hasta, base, origen="Calendario histórico"):
+    """Meses (1–12) en los que la planta está en temporada, de la fecha `desde` a la `hasta`."""
+    return {"planta": planta, "mes_desde": desde.month, "mes_hasta": hasta.month,
+            "desde": f"{desde.day} {MES[desde.month - 1]}", "hasta": f"{hasta.day} {MES[hasta.month - 1]}",
+            "base": base, "origen": origen}
+
+
+def calendario_tejera():
+    # Inicio del cambio de color más temprano y pleno color más tardío de los otoños del calendario.
+    # No se usa el inicio por satélite de 2026 (otono_hitos.csv, marcado revisar=True).
+    ref = pd.read_csv(DATOS / "referencia_fechas.csv").query("hayedo == 'tejera_negra'").set_index("hito")
+    ini, fin = ref.loc["inicio"], ref.loc["pleno"]
+    return calendario("Hayedo", doy_a_fecha(ini.doy_min, 2026), doy_a_fecha(fin.doy_max, 2026),
+                      f"referencia_fechas.csv: inicio más temprano (día {ini.doy_min:g}) a pleno color más tardío (día {fin.doy_max:g}), "
+                      f"{int(ini.anios)} otoños. Las medianas van del {doy_a_fecha(ini.doy_mediana, 2026).day} al "
+                      f"{doy_a_fecha(fin.doy_mediana, 2026).day} oct.")
+
+
+def calendario_sevilla():
+    f = pd.read_csv(DATOS / "fenologia_azahar_sevilla.csv")
+    return calendario("Azahar", doy_a_fecha(f.doy_min.min(), 2027), doy_a_fecha(f.doy_max.max(), 2027),
+                      f"fenologia_azahar_sevilla.csv: primera y última foto de azahar en flor (días {f.doy_min.min()}–{f.doy_max.max()}), "
+                      f"{int(f.n_obs.sum())} observaciones de {', '.join(map(str, f.anio))}.")
+
+
+def calendario_brihuega():
+    # Solo el hito de plena flor: los de cosecha (detectados por satélite, jul–sep) son otra fase y no se cuentan como floración.
+    p = pd.read_csv(DATOS / "prediccion_2027_brihuega.csv").set_index("hito").loc["plena_flor"]
+    return calendario("Lavanda", d(p.amplia_desde), d(p.amplia_hasta),
+                      f"prediccion_2027_brihuega.csv: rango amplio de plena flor ({p.version_modelo}, {int(p.anios)} temporadas). "
+                      "La cosecha (jul–sep, por satélite) no se cuenta como floración.")
+
+
 def main():
     SALIDA.mkdir(parents=True, exist_ok=True)
     destinos = [destino_tejera(), destino_brihuega(), destino_sevilla()]
     destinos[0]["termico"] = termico_tejera(destinos[0])
     destinos[1]["termico"] = termico_brihuega(destinos[1])
+    for x, cal in zip(destinos, [calendario_tejera(), calendario_brihuega(), calendario_sevilla()]):
+        x["calendario"] = cal
     salida = {"generado": iso(HOY), "hoy_demo": iso(HOY), "destinos": destinos}
     (SALIDA / "destinos.json").write_text(json.dumps(salida, ensure_ascii=False, default=str), encoding="utf-8")
     m = destinos[2]["modelo"]
@@ -435,6 +498,9 @@ def main():
         t = x["termico"]
         print(f"OK modelo térmico {x['id']}: {t['tipo']} desde {t['inicio']}, día ref {t['dia_ref']}, umbrales {t['umbrales']}")
     print("   validación Brihuega 2026:", destinos[1]["termico"]["validacion"])
+    for x in destinos:
+        c = x["calendario"]
+        print(f"OK calendario {x['id']}: {c['planta']} {MES[c['mes_desde'] - 1]}–{MES[c['mes_hasta'] - 1]} ({c['desde']} – {c['hasta']})")
 
 
 if __name__ == "__main__":

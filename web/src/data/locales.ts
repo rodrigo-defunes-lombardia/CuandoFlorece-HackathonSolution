@@ -1,4 +1,4 @@
-/** Locales y ayuntamientos REALES de cada destino, compartidos por /anuncios y /agencia.
+/** Locales y ayuntamientos REALES de cada destino, usados por /agencia.
  *  Solo datos verificados: nombre, tipo, localidad (de la dirección que muestra la fuente) y valoración con fuente,
  *  URL y fecha de consulta. Nada de teléfonos, direcciones exactas ni textos de reseñas.
  *  Consulta: Booking.com (alojamientos) y Google Maps (restaurantes), 21/10/2026. */

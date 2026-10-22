@@ -1,8 +1,10 @@
 /** Lógica de la página "Agencia": funciones puras y deterministas (mismos parámetros → misma ruta y mismo precio). */
 import { AGENCIA, type Actividad, type Momento, type Rango } from '../data/agencia'
 import { aCinco, type Local } from '../data/locales'
+import { MAX_DIAS } from '../config/agencia'
 
-export const MAX_DIAS = 5
+/** Días máximos que acepta la ruta: el tope configurado o, sin tope, un año (salvaguarda para URLs manipuladas). */
+export const DIAS_MAX_RUTA = MAX_DIAS ?? 366
 export const MAX_PERSONAS = 6
 
 export type LocalConPrecio = Local & { precio: Rango }
@@ -46,12 +48,23 @@ function plantilla(n: number, dias: number): Franja[] {
   return [man, comida, tar, cena, { tipo: 'noche', hora: '23:00' }]
 }
 
+/** [6, 7, 8, 10] → "los días 6–8 y 10" */
+function tramosTexto(ns: number[]) {
+  const t: string[] = []
+  for (let i = 0; i < ns.length; i++) {
+    let j = i
+    while (j + 1 < ns.length && ns[j + 1] === ns[j] + 1) j++
+    t.push(i === j ? `${ns[i]}` : `${ns[i]}–${ns[j]}`); i = j
+  }
+  return (ns.length === 1 ? 'el día ' : 'los días ') + (t.length > 1 ? `${t.slice(0, -1).join(', ')} y ${t[t.length - 1]}` : t[0])
+}
+
 const limitar = (x: number, max: number) => Math.min(max, Math.max(1, Math.round(Number.isFinite(x) ? x : 1)))
 
 export function generarRuta(destinoId: string, diasIn: number, personasIn: number, alojamientoId?: string): Ruta | null {
   const datos = AGENCIA[destinoId]
   if (!datos) return null
-  const dias = limitar(diasIn, MAX_DIAS), personas = limitar(personasIn, MAX_PERSONAS)
+  const dias = limitar(diasIn, DIAS_MAX_RUTA), personas = limitar(personasIn, MAX_PERSONAS)
   const noches = dias - 1, habitaciones = Math.ceil(personas / 2)
   const avisos: string[] = []
   const alojamiento = noches === 0 ? null
@@ -72,17 +85,25 @@ export function generarRuta(destinoId: string, diasIn: number, personasIn: numbe
       if (f.tipo === 'actividad') {
         const a = tomarActividad(f.momento)
         if (a) { usadas.add(a.id); paradas.push({ tipo: 'actividad', hora: f.hora, momento: f.momento, actividad: a }) }
-        else { paradas.push({ tipo: 'libre', hora: f.hora, texto: 'Tiempo libre' }); avisos.push(`Día ${n}: no quedan actividades verificadas sin repetir; dejamos tiempo libre.`) }
+        else paradas.push({ tipo: 'libre', hora: f.hora, texto: 'Tiempo libre' })
       } else if (f.tipo === 'comida' || f.tipo === 'cena') {
         const rest = restaurantes[r++]
         if (rest) paradas.push({ tipo: f.tipo, hora: f.hora, restaurante: rest })
-        else { paradas.push({ tipo: 'libre', hora: f.hora, texto: f.tipo === 'comida' ? 'Comida libre' : 'Cena libre' }); avisos.push(`Día ${n}: no quedan restaurantes verificados sin repetir para la ${f.tipo}.`) }
+        else paradas.push({ tipo: 'libre', hora: f.hora, texto: f.tipo === 'comida' ? 'Comida libre' : 'Cena libre' })
       } else if (alojamiento) {
         paradas.push({ tipo: f.tipo, hora: f.hora, alojamiento })
       }
     }
-    itinerario.push({ n, paradas })
+    // Nunca se repiten actividades ni restaurantes: si un día se queda sin ninguna propuesta, es un día libre (sin coste)
+    const propuestas = paradas.filter(p => p.tipo === 'actividad' || p.tipo === 'comida' || p.tipo === 'cena').length
+    const huecos = paradas.filter(p => p.tipo === 'libre').length
+    itinerario.push({ n, paradas: huecos && !propuestas
+      ? [...paradas.filter(p => p.tipo !== 'libre' && p.tipo !== 'noche'), { tipo: 'libre', hora: '10:00', texto: 'Día libre: no quedan más propuestas verificadas sin repetir en este destino.' },
+        ...paradas.filter(p => p.tipo === 'noche')]
+      : paradas })
   }
+  const conLibre = itinerario.filter(d => d.paradas.some(p => p.tipo === 'libre')).map(d => d.n)
+  if (conLibre.length) avisos.push(`Con ${dias} días no hay propuestas para todo el viaje sin repetir: ${tramosTexto(conLibre)} ${conLibre.length === 1 ? 'tiene' : 'tienen'} tiempo libre, sin coste.`)
   return { destinoId, dias, personas, noches, habitaciones, alojamiento, alojamientos: datos.alojamientos, criterioAlojamiento: CRITERIO_ALOJAMIENTO, itinerario, avisos }
 }
 

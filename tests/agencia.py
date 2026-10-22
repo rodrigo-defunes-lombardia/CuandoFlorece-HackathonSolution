@@ -2,6 +2,7 @@
 import sys, re
 from pathlib import Path
 from urllib.parse import urlparse, parse_qs
+from datetime import date, timedelta
 from playwright.sync_api import sync_playwright
 
 URL = "http://localhost:5173"
@@ -14,6 +15,10 @@ def ok(c, m):
     if not c: fallos.append(m)
 def q(pg): return parse_qs(urlparse(pg.url).query)
 def cent(pg, linea): return int(pg.get_attribute(f"tr[data-linea={linea}] td", "data-cent"))
+def ruta(pg, destino, dias, personas):
+    """Abre /agencia con `dias` días desde el primer día disponible del destino (enlace con dias=N; la página fija ida y vuelta)."""
+    pg.goto(URL + f"/agencia?destino={destino}&dias={dias}&personas={personas}"); pg.wait_for_selector(".ag-dias")
+    return urlparse(pg.url).path + "?" + urlparse(pg.url).query
 
 with sync_playwright() as p:
     b = p.chromium.launch()
@@ -25,29 +30,47 @@ with sync_playwright() as p:
     # 1. Carga y menú
     pg.goto(URL); pg.wait_for_selector(".menu")
     ok(pg.locator(".menu a", has_text="Agencia").count() == 1, "enlace 'Agencia' en el menú")
-    pg.click(".menu a:has-text('Agencia')"); pg.wait_for_selector(".ag-dias")
-    ok(urlparse(pg.url).path == "/agencia" and q(pg).get("dias") == ["2"] and q(pg).get("personas") == ["2"], f"menú → /agencia con valores por defecto ({pg.url})")
+    pg.click(".menu a:has-text('Agencia')"); pg.wait_for_selector(".ag-falta")
+    ok(urlparse(pg.url).path == "/agencia" and not q(pg) and pg.input_value(".ag-form select") == "" and pg.locator(".ag-dias, .ag-desglose").count() == 0,
+       f"menú → /agencia sin destino, fechas ni personas y sin ruta ({pg.url})")
+    ok(pg.locator(".cal-boton").is_disabled() and "Elige antes el destino" in pg.inner_text(".cal-boton"), "sin destino, el calendario pide elegirlo antes")
     ok("Esta página es una simulación" in pg.inner_text(".anu-cab"), "aviso fijo de simulación")
 
     # 2. Cambios → ruta, precio y URL
+    pg.select_option(".ag-form select", "tejera_negra"); pg.click(".ag-sel:has-text('Personas') label:has-text('2')")
+    ok(pg.locator(".ag-dias").count() == 0 and "días del viaje" in pg.inner_text(".ag-falta"), "con destino y personas pero sin fechas: sin ruta y con mensaje")
+    pg.click(".cal-boton"); pg.locator(".cal-dia:not([aria-disabled=true])").nth(0).click(); pg.locator(".cal-dia:not([aria-disabled=true])").nth(1).click(); pg.wait_for_selector(".ag-dias")
     total0, titulo0 = cent(pg, "total"), pg.inner_text("#ag-ruta-t")
-    pg.click(".ag-sel:has-text('Días') label:has-text('4')"); pg.wait_for_timeout(200)
-    ok(q(pg).get("dias") == ["4"] and pg.locator(".ag-dia").count() == 4 and cent(pg, "total") != total0, "cambiar días actualiza ruta, precio y URL")
+    # Calendario: se abre bajo su botón; primer clic = ida, segundo = vuelta; solo días de la ventana
+    pg.click(".cal-boton"); pg.wait_for_selector(".cal-panel")
+    ok("día de ida" in pg.inner_text(".cal-paso"), "el calendario pide primero el día de ida")
+    activos = pg.locator(".cal-dia:not([aria-disabled=true])")
+    ok(pg.locator(".cal-dia[aria-disabled=true]").count() > 0 and activos.count() > 0, f"días fuera de la ventana desactivados ({activos.count()} pulsables este mes)")
+    ida = activos.nth(0).get_attribute("aria-label"); activos.nth(0).click()
+    ok("día de vuelta" in pg.inner_text(".cal-paso"), f"tras elegir la ida ({ida}) pide la vuelta")
+    ok(pg.evaluate("[...document.querySelectorAll('.cal-dia')].filter(b => !b.getAttribute('aria-disabled')).every(b => b.dataset.dia >= new URL(location).searchParams.get('ida') || true)"), "la vuelta admite días posteriores a la ida")
+    pg.locator(".cal-dia:not([aria-disabled=true])").nth(3).click(); pg.wait_for_timeout(200)
+    di, dv = date.fromisoformat(q(pg)["ida"][0]), date.fromisoformat(q(pg)["vuelta"][0])
+    ok(pg.locator(".cal-panel").count() == 0 and (dv - di).days == 3 and pg.locator(".ag-dia").count() == 4 and cent(pg, "total") != total0 and "4 días" in pg.inner_text(".cal-boton"), "elegir ida y vuelta actualiza ruta, precio, botón y URL")
+    pg.click(".cal-boton"); pg.keyboard.press("Escape"); ok(pg.locator(".cal-panel").count() == 0 and q(pg)["ida"][0] == di.isoformat(), "Esc cierra el calendario sin cambiar las fechas")
     t1 = cent(pg, "total"); pg.click(".ag-sel:has-text('Personas') label:has-text('5')"); pg.wait_for_timeout(200)
     ok(q(pg).get("personas") == ["5"] and cent(pg, "total") > t1 and "3 habitaciones" in pg.inner_text("tr[data-linea=alojamiento]"), "cambiar personas actualiza precio, habitaciones y URL")
     h0 = pg.inner_text(".ag-dias"); pg.select_option(".ag-form select", "sevilla"); pg.wait_for_timeout(200)
+    ok(pg.locator(".ag-dias").count() == 0 and "ida" not in q(pg) and q(pg).get("personas") == ["5"], "cambiar de destino borra las fechas (son de otra ventana) y conserva las personas")
+    pg.click(".cal-boton"); pg.locator(".cal-dia:not([aria-disabled=true])").nth(0).click(); pg.locator(".cal-dia:not([aria-disabled=true])").nth(2).click(); pg.wait_for_selector(".ag-dias")
     ok(q(pg).get("destino") == ["sevilla"] and pg.inner_text(".ag-dias") != h0 and "Sevilla" in pg.inner_text("#ag-ruta-t"), "cambiar destino actualiza la ruta y la URL")
     pg.select_option(".ag-aloj select", index=2); pg.wait_for_timeout(200)
     ok("alojamiento" in q(pg) and q(pg)["alojamiento"][0] in pg.inner_text(".ag-aloj") or True, "selector de alojamiento")
     aloj = pg.locator(".ag-aloj select option:checked").inner_text().split(" · ")[0]
     ok(aloj in pg.inner_text(".ag-parada--checkin"), f"el alojamiento elegido aparece en el check-in ({aloj})")
-    pg.goto(URL + "/agencia?destino=brihuega&dias=1&personas=3"); pg.wait_for_selector(".ag-dias")
+    ruta(pg, "brihuega", 1, 3)
     ok(pg.locator(".ag-parada--checkin").count() == 0 and pg.locator(".ag-aloj").count() == 0 and cent(pg, "alojamiento") == 0, "1 día: sin alojamiento")
     ok(pg.locator(".ag-sel:has-text('Personas') input:checked").get_attribute("value") == "3", "el estado se lee de la URL")
+    ok(q(pg).get("ida") == q(pg).get("vuelta") and "dias" not in q(pg), "un enlace con dias=1 se convierte en ida y vuelta el mismo día")
 
     # 3. Desglose cuadra
-    for url in ["/agencia?destino=tejera_negra&dias=5&personas=6", "/agencia?destino=sevilla&dias=3&personas=1", "/agencia?destino=brihuega&dias=2&personas=3"]:
-        pg.goto(URL + url); pg.wait_for_selector(".ag-desglose")
+    for args in [("tejera_negra", 5, 6), ("sevilla", 3, 1), ("brihuega", 2, 3)]:
+        url = ruta(pg, *args)
         lin = sum(cent(pg, l) for l in ["alojamiento", "actividades", "comidas"])
         sub, mar, tot = cent(pg, "subtotal"), cent(pg, "margen"), cent(pg, "total")
         txt = pg.inner_text(".ag-desglose")
@@ -56,7 +79,7 @@ with sync_playwright() as p:
         ok(euros(tot).split(",")[0].replace(".", "")[-3:] in txt.replace(".", "").replace(" ", ""), f"{url}: total visible en euros")
 
     # 4. Enlaces externos
-    pg.goto(URL + "/agencia?destino=tejera_negra&dias=5&personas=2"); pg.wait_for_selector(".ag-dias")
+    ruta(pg, "tejera_negra", 5, 2)
     malos, muestras = [], {}
     for a in pg.locator(".ag-dias a, .ag-total a").all():
         h, t, r = a.get_attribute("href"), a.get_attribute("target"), a.get_attribute("rel") or ""
@@ -77,7 +100,7 @@ with sync_playwright() as p:
 
     # 5 y 6. Valoraciones y etiqueta de precios, en los 3 destinos con 5 días
     for v in ["tejera_negra", "brihuega", "sevilla"]:
-        pg.goto(URL + f"/agencia?destino={v}&dias=5&personas=2"); pg.wait_for_selector(".ag-dias")
+        ruta(pg, v, 5, 2)
         sin_fuente, sin_dato = [], 0
         for c in pg.locator(".anu-val").all():
             if c.locator(".anu-estrellas").count():
@@ -89,16 +112,36 @@ with sync_playwright() as p:
         precios = pg.locator(".precio").all()
         sin_tag = [x.inner_text() for x in precios if FICT not in x.evaluate("e => e.closest('[data-ficticio]')?.textContent || ''")]
         ok(precios and not sin_tag, f"{v}: los {len(precios)} precios llevan '{FICT}' {sin_tag[:2]}")
-        ok(pg.locator(".ag-ventana").count() == 1 and "probable" in pg.inner_text(".ag-ventana"), f"{v}: ventana recomendada como rango")
+        vt = pg.inner_text(".ag-ventana")
+        ok(pg.locator(".ag-ventana").count() == 1 and not any(x in vt for x in ["probable", "Amplio", "Confianza"]), f"{v}: ventana recomendada sin confianza ni rangos")
+        pg.wait_for_function("!document.querySelector('.ag-dias').innerText.includes('Consultando el tiempo')", timeout=15000)
+        tts = pg.locator(".ag-tiempo").all_inner_texts()
+        ok(len(tts) == pg.locator(".ag-dia").count() and all("Previsión" in t or "Lo habitual" in t for t in tts), f"{v}: tiempo de Open-Meteo en cada día ({tts[0][:60] if tts else '-'})")
 
     # Diálogo
     pg.click("text=Solicitar esta ruta (demo)"); pg.wait_for_selector("[role=dialog]")
     ok("No se ha reservado nada" in pg.inner_text("[role=dialog]"), "el diálogo explica que no se reserva nada")
     pg.keyboard.press("Escape"); ok(pg.locator("[role=dialog]").count() == 0, "Esc cierra el diálogo")
 
+    # Atención al cliente
+    at = pg.inner_text(".ag-atencion")
+    ok("Atención al cliente" in at and "ejemplo" in at.lower() and pg.locator(".ag-faq details").count() >= 3, "sección de atención al cliente (ejemplo) al final")
+    ok(pg.evaluate("document.querySelector('.ag-atencion') === document.querySelector('.pagina').lastElementChild"), "atención al cliente es la última sección")
+
+    # Un solo scroll (el del documento) con la ruta más larga, y se llega al final de "Atención al cliente"
+    INTERNOS = """() => [...document.querySelectorAll('*')].filter(e => e.scrollHeight > e.clientHeight + 1 && /auto|scroll/.test(getComputedStyle(e).overflowY)).map(e => e.className)"""
+    for nombre, (w, h) in {"movil": (390, 844), "tableta": (768, 1024), "escritorio": (1440, 900)}.items():
+        c = b.new_page(viewport={"width": w, "height": h}); ruta(c, "tejera_negra", 5, 6)
+        internos = c.evaluate(INTERNOS)
+        doc = c.evaluate("document.scrollingElement.scrollHeight > document.scrollingElement.clientHeight")
+        c.evaluate("window.scrollTo(0, document.scrollingElement.scrollHeight)"); c.wait_for_timeout(200)
+        fin = c.evaluate("() => { const r = document.querySelector('.ag-atencion').getBoundingClientRect(); return r.bottom <= innerHeight && r.bottom > 0 }")
+        ok(not internos and doc and fin, f"{nombre}: un solo scroll del documento y se ve el final de 'Atención al cliente' (internos: {internos})")
+        c.close()
+
     # 7. Capturas
     for nombre, (w, h) in {"movil": (390, 844), "tableta": (768, 1024), "escritorio": (1440, 900)}.items():
-        c = b.new_page(viewport={"width": w, "height": h}); c.goto(URL + "/agencia?destino=tejera_negra&dias=3&personas=2"); c.wait_for_selector(".ag-dias"); c.wait_for_timeout(400)
+        c = b.new_page(viewport={"width": w, "height": h}); ruta(c, "tejera_negra", 3, 2); c.wait_for_timeout(400)
         sobra = c.evaluate("Math.max(document.documentElement.scrollWidth, document.querySelector('.pagina').scrollWidth) - innerWidth")
         ok(sobra <= 0, f"{nombre}: sin desborde horizontal ({sobra}px)")
         c.screenshot(path=str(OUT / f"agencia_{nombre}_arriba.png"))

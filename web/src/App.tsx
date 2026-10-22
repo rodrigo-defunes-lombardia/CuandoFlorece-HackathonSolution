@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import type { Datos, Observacion } from './lib/tipos'
-import { calcularAjuste, estadoEn, type Ajuste } from './lib/estado'
-import { SEMILLAS, observacionesRepo } from './lib/repos'
+import type { Datos } from './lib/tipos'
+import { estadoEn, momentoTexto, SIN_AJUSTE, type Ajuste } from './lib/estado'
 import { sumaDias } from './lib/fechas'
 import { colorFase } from './lib/colores'
 import { Flor } from './components/Flor'
@@ -9,25 +8,23 @@ import { Badge } from './components/Badge'
 import { MapView } from './components/MapView'
 import { Simulador } from './components/Simulador'
 import { Ficha } from './components/Ficha'
-import { FormObs } from './components/FormObs'
 import { FormAlerta } from './components/FormAlerta'
 import { cargarTiempo, fusionar, type DiaTiempo, type Tiempo } from './lib/tiempo'
 import { aplicarVivo, inicioAcumulacion, type Vivo } from './lib/vivo'
-import { Anuncios } from './components/Anuncios'
 import { Agencia } from './components/Agencia'
+import { Franja } from './components/Franja'
 
 export default function App() {
   const [datos, setDatos] = useState<Datos | null>(null)
   const [fallo, setFallo] = useState('')
   const [sel, setSel] = useState<string | null>(null)
   const [dias, setDias] = useState(0)
-  const [obs, setObs] = useState<Observacion[]>([])
-  const [modal, setModal] = useState<null | 'obs' | 'alerta'>(null)
-  // Navegación mínima por ruta (sin librería): "/" es el mapa; "/anuncios" y "/agencia", las demos de negocio.
+  const [modal, setModal] = useState<null | 'alerta'>(null)
+  // Navegación mínima por ruta (sin librería): "/" es el mapa; "/agencia", la demo de negocio.
   const [ruta, setRuta] = useState(window.location.pathname)
   useEffect(() => { const f = () => setRuta(window.location.pathname); window.addEventListener('popstate', f); return () => window.removeEventListener('popstate', f) }, [])
   const ir = (url: string) => (e?: React.MouseEvent) => { e?.preventDefault(); window.history.pushState(null, '', url); setRuta(window.location.pathname); setModal(null) }
-  const pagina = ruta.replace(/\/$/, '') === '/anuncios' ? 'anuncios' : ruta.replace(/\/$/, '') === '/agencia' ? 'agencia' : 'mapa'
+  const pagina = ruta.replace(/\/$/, '') === '/agencia' ? 'agencia' : 'mapa'
 
   useEffect(() => {
     fetch('/data/destinos.json').then(r => { if (!r.ok) throw new Error(); return r.json() }).then(setDatos)
@@ -56,47 +53,41 @@ export default function App() {
     return { destino, vivo: vivo as Vivo, tiempo: t && dias ? { ...t, dias } : t }
   }), [datos, tiempos, hoy])
   const destinos = useMemo(() => vivos.map(v => v.destino), [vivos])
-  const recargar = useCallback(async () => {
-    const propias = await observacionesRepo.listar()
-    setObs([...SEMILLAS(hoy), ...propias])
-  }, [hoy])
-  useEffect(() => { recargar() }, [recargar])
 
   const fecha = sumaDias(hoy, dias)
-  const ajustes = useMemo(() => Object.fromEntries(destinos.map(d => [d.id, calcularAjuste(d, obs, hoy)])) as Record<string, Ajuste>, [destinos, obs, hoy])
+  const ajustes = useMemo(() => Object.fromEntries(destinos.map(d => [d.id, SIN_AJUSTE])) as Record<string, Ajuste>, [destinos])
   const estados = useMemo(() => Object.fromEntries(destinos.map(d => [d.id, estadoEn(d, fecha, ajustes[d.id])])), [destinos, fecha, ajustes])
   const d = destinos.find(x => x.id === sel) ?? null
   const vd = vivos.find(v => v.destino.id === sel)
 
   return (
-    <div className="app">
+    <div className={`app app--${pagina}`}>
       <a className="salto" href="#contenido">Saltar al contenido</a>
       <header className="barra">
         <a className="marca-app" href="/" onClick={e => { setSel(null); ir('/')(e) }}><Flor size={28} className="logo" /><span>Cuándo Florece</span></a>
         <nav className="menu" aria-label="Principal">
           <a href="/" onClick={ir('/')} aria-current={pagina === 'mapa' ? 'page' : undefined}>Mapa</a>
-          <a href="/anuncios" onClick={ir('/anuncios')} aria-current={pagina === 'anuncios' ? 'page' : undefined}>Anuncios</a>
           <a href="/agencia" onClick={ir('/agencia')} aria-current={pagina === 'agencia' ? 'page' : undefined}>Agencia</a>
         </nav>
       </header>
 
+        {datos && pagina === 'mapa' && <Franja destinos={destinos} hoy={hoy} onIr={url => ir(url)()} />}
         <main className="vista" id="contenido">
           {fallo && <p className="err pagina">{fallo}</p>}
           {!datos && !fallo && <div className="cargando" role="status"><Flor size={56} className="gira" /> Cargando el mapa vivo…</div>}
-          {datos && pagina === 'anuncios' && <Anuncios destinos={destinos} />}
-          {datos && pagina === 'agencia' && <Agencia destinos={destinos} hoy={hoy} ajustes={ajustes} />}
+          {datos && pagina === 'agencia' && <Agencia destinos={destinos} hoy={hoy} />}
           {datos && pagina === 'mapa' && (<>
             <MapView destinos={destinos} estados={estados} seleccionado={sel} onSeleccionar={id => setSel(id)} />
             <div className="flota"><Simulador dias={dias} fecha={fecha} hoy={hoy} onChange={setDias} /></div>
             <aside className="panel" aria-label="Destinos">
               {d ? (
-                <Ficha d={d} fecha={fecha} hoy={hoy} ajuste={ajustes[d.id]} obs={obs.filter(o => o.destinoId === d.id)}
+                <Ficha d={d} fecha={fecha} hoy={hoy} ajuste={ajustes[d.id]}
                   tiempo={vd?.tiempo} vivo={vd?.vivo} cargandoTiempo={cargandoT} onRefrescar={() => refrescar(true)}
-                  onVolver={() => setSel(null)} onAnuncios={ir(`/anuncios?destino=${d.id}`)} onAlerta={() => setModal('alerta')} onObs={() => setModal('obs')} />
+                  onVolver={() => setSel(null)} onAlerta={() => setModal('alerta')} />
               ) : (
                 <div>
                   <h1 className="titulo">El mapa vivo de la floración en España</h1>
-                  <p className="dim">Cuándo y dónde florece, con un margen de confianza honesto. Mueve la máquina del tiempo para ver cómo cambia.</p>
+                  <p className="dim">Cuándo y dónde florece, y cuál es el mejor momento para ir. Mueve la máquina del tiempo para ver cómo cambia.</p>
                   <ul className="lista">
                     {destinos.map(x => {
                       const e = estados[x.id]
@@ -104,7 +95,7 @@ export default function App() {
                         <li key={x.id}><button className="tarjeta" style={{ ['--c' as string]: colorFase(x.tipo, e.faseId) }} onClick={() => setSel(x.id)}>
                           <Flor size={34} />
                           <span className="tarjeta-txt"><b>{x.nombre}</b><span>{x.especie}</span>
-                            <span className="tarjeta-est">{e.etiqueta}{e.enTemporada ? ` · ${e.pct} %` : e.proxima ? ` · desde ~${e.proxima.slice(8)}/${e.proxima.slice(5, 7)}` : ''}</span></span>
+                            <span className="tarjeta-est">{e.etiqueta}{e.enTemporada ? ` · ${momentoTexto(e, x.tipo)}` : e.proxima ? ` · desde ~${e.proxima.slice(8)}/${e.proxima.slice(5, 7)}` : ''}</span></span>
                           <span className="tarjeta-b"><Badge origen={x.origenes[0]} /></span>
                         </button></li>
                       )
@@ -114,7 +105,6 @@ export default function App() {
                 </div>
               )}
             </aside>
-            {d && modal === 'obs' && <FormObs destino={d} hoy={hoy} todas={obs} onClose={() => setModal(null)} onGuardada={recargar} />}
             {d && modal === 'alerta' && <FormAlerta destino={d} onClose={() => setModal(null)} />}
           </>)}
         </main>

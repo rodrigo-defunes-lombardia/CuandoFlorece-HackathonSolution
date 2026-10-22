@@ -1,6 +1,6 @@
 """Recorrido de la demo con Playwright. Uso: .venv/bin/python tests/e2e.py [carpeta_capturas]
 Requiere `npm run dev` en marcha (puerto 5173)."""
-import sys, base64
+import sys, re
 from pathlib import Path
 from playwright.sync_api import sync_playwright
 
@@ -15,7 +15,7 @@ def ok(cond, msg):
 with sync_playwright() as p:
     b = p.chromium.launch()
     for nombre, (w, h) in {"movil": (390, 844), "tablet": (768, 1024), "escritorio": (1440, 900)}.items():
-        ctx = b.new_context(viewport={"width": w, "height": h}, permissions=["geolocation"], geolocation={"latitude": 40.7688, "longitude": -2.8693})
+        ctx = b.new_context(viewport={"width": w, "height": h})
         pg = ctx.new_page(); logs = []
         pg.on("console", lambda m: logs.append(m.text) if m.type in ("error", "warning") else None)
         pg.on("pageerror", lambda e: logs.append(str(e)))
@@ -28,7 +28,9 @@ with sync_playwright() as p:
                 pg.locator(".tarjeta", has_text=dest).click()
                 pg.wait_for_selector(".ficha")
                 t = pg.inner_text(".ficha")
-                ok("Cuánto confiar" in t and "Cuándo ir" in t, f"ficha {dest}: estado, rango y confianza")
+                ok(t.index("Cuándo ir") < t.index("Evolución") and pg.locator(".ficha .bloque").first.get_attribute("aria-label") == "Cuándo ir", f"ficha {dest}: 'Cuándo ir' es el primer bloque")
+                ok(not any(x in t for x in ["Cuánto confiar", "Probable", "Amplio", "Yo estuve aquí", "Para completar el viaje", "anuncios"]), f"ficha {dest}: sin confianza, rangos, verificación ni partners")
+                ok(not re.search(r"\d+ % de (color|floración)", t), f"ficha {dest}: sin porcentaje de color/floración")
                 pg.wait_for_function("document.querySelector('.tiempo')?.innerText.includes('Últimos 7 días') || document.querySelector('.tiempo')?.innerText.includes('No hay datos')", timeout=15000)
                 tt = pg.inner_text(".tiempo")
                 ok("Últimos 7 días" in tt and "Open-Meteo" in tt, f"ficha {dest}: tiempo de Open-Meteo ({tt.splitlines()[-1][:70]})")
@@ -43,27 +45,14 @@ with sync_playwright() as p:
             ok(antes != despues, f"simulador cambia estado: «{antes}» → «{despues}»")
             pg.screenshot(path=str(OUT / "escritorio_2_abril2027.png"))
             pg.get_by_role("button", name="Hoy", exact=True).click()
-            # Verificación ciudadana: lejos y cerca
             pg.locator(".tarjeta", has_text="Tejera Negra").click()
-            ant = pg.inner_text(".ficha .estado")
-            pg.get_by_role("button", name="Yo estuve aquí").click()
-            pg.get_by_label("Pleno color").check(force=True) if False else pg.locator(".radio", has_text="Pleno color").click()
-            pg.set_input_files("input[type=file]", {"name": "f.png", "mimeType": "image/png", "buffer": base64.b64decode("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==")})
-            pg.get_by_role("button", name="Demo: estoy lejos").click()
-            pg.get_by_role("button", name="Enviar observación").click()
-            ok("descartada" in pg.inner_text(".modal"), "ubicación lejana rechazada con mensaje")
-            pg.get_by_role("button", name="Demo: estoy aquí").click()
-            pg.get_by_role("button", name="Enviar observación").click()
-            pg.wait_for_selector(".modal .ok"); ok(True, "observación cercana aceptada: " + pg.inner_text(".modal .ok"))
-            pg.get_by_role("button", name="Cerrar").last.click()
-            ok("Verificado por 4" in pg.inner_text(".ficha"), "ficha muestra 'Verificado por 4 personas'")
-            pg.screenshot(path=str(OUT / "escritorio_3_verificada.png"))
+            pg.screenshot(path=str(OUT / "escritorio_3_ficha_hayedo.png"))
             # Alerta
             pg.get_by_role("button", name="Avísame cuando llegue la flor").click()
             pg.get_by_label("Tu correo").fill("a@b.es"); pg.get_by_role("button", name="Avísame", exact=True).click()
             ok("demo" in pg.inner_text(".modal").lower(), "alerta simulada confirma que es demo")
             pg.keyboard.press("Escape")
-            ok(pg.get_by_role("link", name="Negocio").count() == 0, "la web ya no tiene sección Negocio")
+            ok(pg.get_by_role("link", name="Negocio").count() == 0 and pg.get_by_role("link", name="Anuncios").count() == 0, "la web no tiene secciones Negocio ni Anuncios")
         ok(not [l for l in logs if "tiles" not in l.lower() and "GL Driver" not in l and "fetch" not in l.lower()], f"[{nombre}] consola limpia {logs[:3]}")
         ctx.close()
     b.close()

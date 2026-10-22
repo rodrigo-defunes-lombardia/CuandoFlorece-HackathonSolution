@@ -23,7 +23,9 @@ export function Simulador({ dias, fecha, hoy, onChange }: { dias: number; fecha:
           {SALTOS.map(s => <option key={s.v} value={s.v}>{s.t}</option>)}
         </select>
       </div>
+      {/* --pct pinta el relleno ámbar hasta el control (estilo propio: el nativo cambia mucho entre navegadores) */}
       <input className="sim-rango" type="range" min={0} max={365} step={1} value={dias} aria-label="Días desde hoy"
+        style={{ ['--pct' as string]: `${(dias / 365) * 100}%` }}
         aria-valuetext={`${dias} días desde hoy, ${corta(fecha)}`} onChange={e => onChange(Number(e.target.value))} />
     </section>
   )

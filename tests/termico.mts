@@ -12,7 +12,7 @@ const ok = (c: boolean, msg: string) => { console.log(c ? 'OK   ' : 'FALLA', msg
 for (const id of ['brihuega', 'tejera_negra']) ok(desplazamientoTermico(dest(id).termico, []).dias === 0, `${id}: sin datos, desplazamiento 0`)
 
 // 2) La web reproduce el cálculo del pipeline (validación de Brihuega con 2026)
-const bri = dest('brihuega'), csv = readFileSync(new URL('../pipeline/clima/brihuega_2016-01-01_2026-08-31.csv', import.meta.url), 'utf8')
+const bri = dest('brihuega'), csv = readFileSync(new URL(`../pipeline/clima/brihuega_${bri.lat.toFixed(4)}_${bri.lon.toFixed(4)}_2016-01-01_2026-08-31.csv`, import.meta.url), 'utf8')
 const dias26 = csv.trim().split('\n').slice(1).map(l => l.split(',')).filter(([f]) => f.startsWith('2026'))
   .map(([fecha, tmax, tmin]) => ({ fecha, tmax: Number(tmax), tmin: Number(tmin), lluvia: 0, prevision: false }))
 const r = desplazamientoTermico(bri.termico, tmedTemporada(dias26, '2026-01-01', 243).map(x => x === undefined ? x : Math.round(x * 100) / 100))

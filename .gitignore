@@ -1,6 +1,6 @@
-.venv/
-node_modules/
-dist/
-__pycache__/
-*.pyc
-*.tsbuildinfo
+node_modules
+dist
+.env
+.env.*
+*.log
+*.tar.gz

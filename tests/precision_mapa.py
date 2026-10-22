@@ -1,12 +1,13 @@
 """Comprueba que cada destino se dibuja exactamente en su coordenada a distintos zooms.
 Mira el píxel donde cae la coordenada: debe ser el punto crema del centro de la flor.
 Uso (con `npm run dev` en marcha): python tests/precision_mapa.py [carpeta_capturas]"""
-import sys
+import sys, json
 from pathlib import Path
 from playwright.sync_api import sync_playwright
 
 OUT = Path(sys.argv[1] if len(sys.argv) > 1 else "/tmp/capturas"); OUT.mkdir(parents=True, exist_ok=True)
-DEST = {"tejera_negra": (-3.4230, 41.1550), "brihuega": (-2.8693, 40.7688), "sevilla": (-5.9845, 37.3891)}
+# Coordenadas de destinos.json (fuente única: COORDENADAS en pipeline/build.py)
+DEST = {d["id"]: (d["lon"], d["lat"]) for d in json.loads((Path(__file__).parent.parent / "web/public/data/destinos.json").read_text())["destinos"]}
 fallos = 0
 with sync_playwright() as p:
     b = p.chromium.launch()
@@ -14,7 +15,7 @@ with sync_playwright() as p:
     for nombre, (w, h) in ([(sys.argv[2], vistas[sys.argv[2]])] if len(sys.argv) > 2 else vistas.items()):
         pg = b.new_page(viewport={"width": w, "height": h}, device_scale_factor=1)
         pg.goto("http://localhost:5173"); pg.wait_for_function("window.__mapa && window.__mapa.getSource('destinos')"); pg.wait_for_timeout(1500)
-        for zoom in (3.5, 5, 7, 9):
+        for zoom in (3.5, 5, 7, 9, 12, 14.5):
             for id_, (lon, lat) in DEST.items():
                 pg.evaluate(f"window.__mapa.jumpTo({{center: [{lon}, {lat}], zoom: {zoom}}})"); pg.wait_for_timeout(500)
                 x, y = pg.evaluate(f"(() => {{ const r = window.__mapa.getCanvas().getBoundingClientRect(); const q = window.__mapa.project([{lon}, {lat}]); return [r.left + q.x, r.top + q.y] }})()")

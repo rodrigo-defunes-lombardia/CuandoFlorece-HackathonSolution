@@ -1,11 +1,15 @@
 import { describe, expect, it } from 'vitest'
-import { calcularPrecio, elegirAlojamiento, generarRuta, MAX_DIAS, MAX_PERSONAS } from './agencia'
+import { calcularPrecio, elegirAlojamiento, generarRuta, MAX_PERSONAS } from './agencia'
 import { AGENCIA } from '../data/agencia'
 import { AGENCY_MARGIN } from '../config/agencia'
 
 const DESTINOS = Object.keys(AGENCIA)
-const combinaciones = DESTINOS.flatMap(id => Array.from({ length: MAX_DIAS }, (_, i) => i + 1)
+// 1–5 días: los datos (9 actividades y 8 restaurantes por destino) cubren el viaje entero sin repetir
+const DIAS_CON_DATOS = 5
+const combinaciones = DESTINOS.flatMap(id => Array.from({ length: DIAS_CON_DATOS }, (_, i) => i + 1)
   .flatMap(dias => Array.from({ length: MAX_PERSONAS }, (_, j) => [id, dias, j + 1] as const)))
+// Viajes largos (hasta 30 días): se acaban las propuestas y los días sobrantes son libres
+const largos = DESTINOS.flatMap(id => [6, 7, 10, 30].flatMap(dias => [1, 2, 6].map(personas => [id, dias, personas] as const)))
 
 describe('generarRuta', () => {
   it.each(combinaciones)('%s · %i días · %i personas: estructura, noches y comidas', (id, dias, personas) => {
@@ -53,9 +57,35 @@ describe('generarRuta', () => {
     expect(generarRuta(id, 3, 2, 'no-existe')!.alojamiento).toEqual(elegirAlojamiento(AGENCIA[id].alojamientos))
   })
 
+  it.each(largos)('%s · %i días · %i personas: sin repetir, noches = días − 1 y días libres sin coste', (id, dias, personas) => {
+    const r = generarRuta(id, dias, personas)!
+    const p = r.itinerario.flatMap(d => d.paradas)
+    expect(r.itinerario).toHaveLength(dias)
+    expect(r.noches).toBe(dias - 1)
+    const rest = p.flatMap(x => ('restaurante' in x ? [x.restaurante.id] : [])), acts = p.flatMap(x => ('actividad' in x ? [x.actividad.id] : []))
+    expect(new Set(rest).size).toBe(rest.length); expect(new Set(acts).size).toBe(acts.length)
+    // Se usan todas las propuestas antes de dejar días libres
+    expect(rest.length).toBe(AGENCIA[id].restaurantes.length); expect(acts.length).toBe(AGENCIA[id].actividades.length)
+    // Las noches siguen en el alojamiento aunque el día sea libre
+    expect(p.filter(x => x.tipo === 'noche').length).toBe(dias - 2)
+    // Un solo aviso que dice qué días tienen tiempo libre
+    const libres = r.itinerario.filter(d => d.paradas.some(x => x.tipo === 'libre')).map(d => d.n)
+    expect(libres.length).toBeGreaterThan(0)
+    expect(r.avisos).toHaveLength(1); expect(r.avisos[0]).toContain('sin coste')
+    // Desde el primer día totalmente vacío, todos los intermedios son «Día libre» (una sola parada libre)
+    const vacios = r.itinerario.filter(d => d.paradas.some(x => x.tipo === 'libre' && x.texto.startsWith('Día libre')))
+    for (const d of vacios) expect(d.paradas.filter(x => x.tipo === 'libre')).toHaveLength(1)
+    if (dias >= 7) expect(vacios.length).toBeGreaterThan(0)
+  })
+
+  it('el aviso agrupa los días libres en tramos', () => {
+    expect(generarRuta('sevilla', 30, 2)!.avisos[0]).toContain('los días 5–30 tienen tiempo libre')
+  })
+
   it('limita días y personas a rangos válidos y devuelve null para un destino sin datos', () => {
     const r = generarRuta('sevilla', 9, 0)!
-    expect([r.dias, r.personas]).toEqual([5, 1])
+    expect([r.dias, r.personas]).toEqual([9, 1])
+    expect(generarRuta('sevilla', 1000, 2)!.dias).toBe(366)
     expect(generarRuta('no-existe', 2, 2)).toBeNull()
   })
 
@@ -85,6 +115,17 @@ describe('calcularPrecio', () => {
     // Alojamiento = noches × habitaciones × precio medio por noche
     const aloj = r.alojamiento ? Math.round((r.alojamiento.precio[0] + r.alojamiento.precio[1]) / 2 * 100) : 0
     expect(pr.lineas.find(l => l.id === 'alojamiento')!.cent).toBe(r.noches * Math.ceil(personas / 2) * aloj)
+  })
+
+  it.each(largos)('%s · %i días · %i personas: el desglose cuadra y los días libres no suman', (id, dias, personas) => {
+    const r = generarRuta(id, dias, personas)!, pr = calcularPrecio(r, personas, AGENCY_MARGIN)
+    expect(pr.subtotal).toBe(pr.lineas.reduce((s, l) => s + l.cent, 0))
+    expect(pr.total).toBe(pr.subtotal + Math.round(pr.subtotal * AGENCY_MARGIN))
+    const noche = Math.round((r.alojamiento!.precio[0] + r.alojamiento!.precio[1]) / 2 * 100)
+    expect(pr.lineas.find(l => l.id === 'alojamiento')!.cent).toBe((dias - 1) * Math.ceil(personas / 2) * noche)
+    // Actividades y comidas: solo las propuestas reales (las mismas que con 5 días + las del día 6 si caben)
+    const ac = r.itinerario.flatMap(d => d.paradas).reduce((s, p) => s + ('actividad' in p ? Math.round(p.actividad.precioPP * 100) * personas : 0), 0)
+    expect(pr.lineas.find(l => l.id === 'actividades')!.cent).toBe(ac)
   })
 
   it('el margen es configurable y 0 deja el total igual al subtotal', () => {

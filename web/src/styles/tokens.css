@@ -8,6 +8,8 @@
   --st-fuera: #6F647C; --st-brote: #CDB9EC; --st-floracion: #A98BD9; --st-pico: #F0B35A; --st-caida: #8B6471;
   /* Rampa hayedo (verde → ocre → cobre) */
   --hy-verde: #7FA36B; --hy-cambiando: #C4B14E; --hy-avanzado: #D69A3E; --hy-pleno: #C0662F; --hy-caida: #8B5A44;
+  /* Franja de temporadas: un color por planta, con texto oscuro encima (contraste ≥ 5:1) */
+  --pl-hayedo: var(--hy-avanzado); --pl-lavanda: var(--lila-2); --pl-azahar: #EDE6CF;
   --danger: #E88A8A; --ok: #8BD3A8;
   --font-serif: 'Fraunces', Georgia, serif; --font-sans: 'Inter', system-ui, sans-serif;
   --r-sm: 8px; --r-md: 14px; --r-lg: 22px;
