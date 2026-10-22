@@ -1,22 +1,6 @@
 # Cuándo Florece · el mapa vivo de la floración en España
 
-Prototipo para el reto de Greenia (Hackathon EPS UFV, 20–22 oct 2026). Mapa con 3 destinos, cuándo ir y estado de la floración en lenguaje llano, simulador de fecha y alertas simuladas. El modelo de negocio está en [`NEGOCIO.md`](NEGOCIO.md) y el funcionamiento interno de la web, archivo por archivo, en [`FUNCIONAMIENTO.md`](FUNCIONAMIENTO.md).
-
-## Arrancar desde cero
-```bash
-python3 -m venv .venv && .venv/bin/pip install pandas numpy
-.venv/bin/python pipeline/build.py      # genera web/public/data/destinos.json
-cd web && npm install && npm run dev    # http://localhost:5173
-```
-Pruebas (opcional; `pip install playwright pillow && playwright install chromium`, con la app en marcha): `python tests/e2e.py` (recorrido), `python tests/precision_mapa.py` (cada flor cae en su coordenada a varios zooms), `python tests/coordenadas.py` (cada destino está donde dicen OpenStreetMap y Wikidata; `--online` vuelve a consultarlos), `python tests/franja.py` (franja de temporadas y su enlace a la agencia), `python tests/simulador.py` (deslizador de la máquina del tiempo), `python tests/calendario.py` (fechas del viaje en la agencia) y `node tests/vivo.mts` (predicción en vivo de Sevilla), `node tests/termico.mts` (modelo térmico de Brihuega y Tejera Negra), `python tests/agencia.py` (página de agencia) y `cd web && npm test` (pruebas unitarias de la agencia y de su calendario, Vitest).
-Los CSV viven en `data/` (los 12 están presentes).
-
-## Por qué esta tecnología
-1. **Vite + React + TypeScript**: arranque instantáneo, tipos que evitan errores con datos de muchos formatos, y despliegue como sitio estático.
-2. **Pipeline Python/pandas aparte**: el análisis (grados-día, percentiles) se queda en el lenguaje de los datos y escribe un JSON; la web no calcula modelos.
-3. **MapLibre + Esri World Imagery + OpenFreeMap**: vista satélite sin API key, con nombres y límites vectoriales encima; clara u oscura según la preferencia del navegador.
-4. **Sin backend**: las alertas usan localStorage tras una interfaz (`web/src/lib/repos.ts`) que se sustituye por una API sin tocar la UI.
-5. **CSS propio con tokens** (`styles/tokens.css`): identidad visual sin librerías genéricas.
+Prototipo para el reto de Greenia (Hackathon EPS UFV, 20–22 oct 2026). Mapa con 3 destinos, cuándo ir y estado de la floración en lenguaje llano, simulador de fecha y alertas simuladas.
 
 ## Qué es real y qué es simulado
 | Elemento | Estado |
@@ -67,15 +51,6 @@ Los meses de cada planta los calcula el pipeline (`calendario_*` en `build.py`, 
 
 Bajo cada mes aparecen como chips las plantas en temporada (un mes cuenta si el rango lo toca, así que el hayedo sale en sep, oct, nov y dic). El origen va en el texto accesible de cada chip y en una línea bajo la franja. Cada chip enlaza a `/agencia?destino=<id>`: la agencia abre con ese destino y sin fechas ni personas, y no arma la ruta hasta que el usuario elige ambas.
 
-## Dónde está cada destino
-Las coordenadas están en un solo sitio, `COORDENADAS` en `pipeline/build.py`, y cada una cita su fuente. La web y los tests las leen de `destinos.json`. Las anteriores se habían puesto a mano, sin fuente, y Tejera Negra caía fuera del parque.
-
-| Destino | Qué representa el punto | Fuente | Zoom de la ficha |
-|---|---|---|---|
-| Hayedo de Tejera Negra | Centro del parque natural (no sabemos dónde están las 7 zonas de seguimiento) | OpenStreetMap, way 291428852 | 11,5 |
-| Azahar de Sevilla | Centro del barrio de Santa Cruz, entre la Catedral, el Alcázar y sus patios | OpenStreetMap, relation 4649140 | 14,5 |
-| Brihuega | Núcleo del municipio, rodeado por los lavandares (OSM no tiene los campos) | Wikidata Q52615 | 12 |
-
 El clima de referencia del modelo térmico se descarga para esa coordenada exacta: los archivos de `pipeline/clima/` llevan la latitud y la longitud en el nombre, así que si cambia el punto se descarga de nuevo.
 
 ## Limitaciones
@@ -86,10 +61,3 @@ El clima de referencia del modelo térmico se descarga para esa coordenada exact
 - `meteo_sevilla.csv` termina el 31-12-2025; los días fuera de temporada muestran "Fuera de temporada" y la próxima ventana.
 - La imagen satelital es Esri World Imagery, de uso libre con atribución para prototipos; en producción hace falta una cuenta de ArcGIS o pasar a imágenes Sentinel-2 sin nubes (EOX), que encajan con los datos del proyecto.
 - Sin conexión no se cargan ni la imagen satelital ni los nombres de las flores del mapa; la lista lateral sigue mostrando todo.
-
-## Hacia producción (que se sostenga solo)
-1. **Sentinel-2** automático (STAC/Planetary Computer) → índices por parcela cada pasada de 5 días.
-2. Mover la descarga de Open-Meteo a un proceso programado en servidor (hoy la hace el navegador) y añadir AEMET; enviar alertas reales con la previsión.
-3. **Backend** para alertas por email/push.
-4. Reentrenar y publicar el acierto de cada predicción pasada (credibilidad).
-5. Un destino nuevo = una fila de datos + calendario.
