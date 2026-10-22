@@ -1,23 +1,6 @@
 # Cuándo Florece · el mapa vivo de la floración en España
 
-Prototipo para el reto de Greenia (Hackathon EPS UFV, 20–22 oct 2026). Mapa con 3 destinos, estado de floración con margen de confianza, simulador de fecha, verificación ciudadana y alertas simuladas. El modelo de negocio está en [`NEGOCIO.md`](NEGOCIO.md) y el funcionamiento interno de la web, archivo por archivo, en [`FUNCIONAMIENTO.md`](FUNCIONAMIENTO.md).
-
-## Arrancar desde cero
-```bash
-python3 -m venv .venv && .venv/bin/pip install pandas numpy
-.venv/bin/python pipeline/build.py      # genera web/public/data/destinos.json
-cd web && npm install && npm run dev    # http://localhost:5173
-```
-Pruebas (opcional; `pip install playwright pillow && playwright install chromium`, con la app en marcha): `python tests/e2e.py` (recorrido), `python tests/precision_mapa.py` (cada flor cae en su coordenada a varios zooms) y `node tests/vivo.mts` (predicción en vivo de Sevilla), `node tests/termico.mts` (modelo térmico de Brihuega y Tejera Negra) `python tests/anuncios.py` (página de anuncios), `python tests/agencia.py` (página de agencia) y `cd web && npm test` (pruebas unitarias de la agencia, Vitest).
-Los CSV viven en `data/` (los 12 están presentes).
-
-## Por qué esta tecnología
-1. **Vite + React + TypeScript**: arranque instantáneo, tipos que evitan errores con datos de muchos formatos, y despliegue como sitio estático.
-2. **Pipeline Python/pandas aparte**: el análisis (grados-día, percentiles) se queda en el lenguaje de los datos y escribe un JSON; la web no calcula modelos.
-3. **MapLibre + Esri World Imagery + OpenFreeMap**: vista satélite sin API key, con nombres y límites vectoriales encima; clara u oscura según la preferencia del navegador.
-4. **Sin backend**: la comunidad y las alertas usan localStorage tras una interfaz (`web/src/lib/repos.ts`) que se sustituye por una API sin tocar la UI.
-5. **CSS propio con tokens** (`styles/tokens.css`): identidad visual sin librerías genéricas.
-
+Prototipo para el reto de Greenia (Hackathon EPS UFV, 20–22 oct 2026). Mapa con 3 destinos, estado de floración con margen de confianza, simulador de fecha, verificación ciudadana y alertas simuladas.
 ## Qué es real y qué es simulado
 | Elemento | Estado |
 |---|---|
@@ -73,10 +56,3 @@ Constantes en `web/src/lib/estado.ts` (`CIUDADANA`). No está validado con datos
 - La comunidad vive en el navegador: no se comparte entre dispositivos.
 - La imagen satelital es Esri World Imagery, de uso libre con atribución para prototipos; en producción hace falta una cuenta de ArcGIS o pasar a imágenes Sentinel-2 sin nubes (EOX), que encajan con los datos del proyecto.
 - Sin conexión no se cargan ni la imagen satelital ni los nombres de las flores del mapa; la lista lateral sigue mostrando todo.
-
-## Hacia producción (que se sostenga solo)
-1. **Sentinel-2** automático (STAC/Planetary Computer) → índices por parcela cada pasada de 5 días.
-2. Mover la descarga de Open-Meteo a un proceso programado en servidor (hoy la hace el navegador) y añadir AEMET; enviar alertas reales con la previsión.
-3. **Backend** para observaciones (API + almacenamiento de fotos + moderación y EXIF real de GPS) y alertas por email/push.
-4. Reentrenar y publicar el acierto de cada predicción pasada (credibilidad).
-5. Un destino nuevo = una fila de datos + calendario.
